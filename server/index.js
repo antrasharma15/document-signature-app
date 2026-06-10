@@ -5,7 +5,10 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  exposedHeaders: ['Accept-Ranges', 'Content-Encoding', 'Content-Length', 'Content-Range']
+}));
 app.use(express.json());
 
 const fs = require('fs');
