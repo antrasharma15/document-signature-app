@@ -1,403 +1,735 @@
-import { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-import API from '../api/axios';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import API from "../api/axios";
+import { useAuth } from "../context/AuthContext";
+import SignaturePlacer from "../components/SignaturePlacer";
+import {
+  LayoutDashboard, FileText, Send, Clock, ShieldCheck,
+  Settings, Upload, Search, Bell, CheckCircle,
+  AlertCircle, Eye, MoreHorizontal, Plus, LogOut,
+  ChevronDown, ArrowUpRight, Inbox, Pen
+} from "lucide-react";
 
-// Set up the PDF worker
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+/* ─── Design tokens ─────────────────────────────────────────────── */
+const S = {
+  bg:          "#ECEDF2",   // cool lavender-grey, NOT warm cream
+  sidebar:     "#1C1F2E",   // ink blue-black, richer than generic dark
+  card:        "#FFFFFF",
+  accent:      "#3D6B5E",   // verdigris — aged copper seal
+  accentLight: "#EBF3F0",
+  text:        "#1C1F2E",
+  muted:       "#6E7491",
+  border:      "#E2E4EA",
+  status: {
+    signed:   { bg: "#EBF3F0", color: "#2A5C4E" },
+    waiting:  { bg: "#EEF0F9", color: "#3D4D8A" },
+    pending:  { bg: "#FEF3E2", color: "#A85E0D" },
+    rejected: { bg: "#FCEEE9", color: "#A83620" },
+  },
+};
 
-const Dashboard = () => {
+const NAV = [
+  { Icon: LayoutDashboard, label:"Dashboard",          id:"dashboard"                },
+  { Icon: FileText,        label:"My Documents",       id:"documents"                },
+  { Icon: Send,            label:"Send for Sign",      id:"send"                     },
+  { Icon: Inbox,           label:"Waiting for Others", id:"waiting"                  },
+  { Icon: ShieldCheck,     label:"Audit Trail",        id:"audit"                    },
+  { Icon: Settings,        label:"Settings",           id:"settings"                 },
+];
+
+const FILTERS = [
+  { id:"all",      label:"All"             },
+  { id:"pending",  label:"Action Required" },
+  { id:"waiting",  label:"Waiting"         },
+  { id:"signed",   label:"Signed"          },
+  { id:"rejected", label:"Rejected"        },
+];
+
+/* ─── Helper functions ──────────────────────────────────────────── */
+function formatBytes(bytes, decimals = 1) {
+  if (!bytes) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function formatTimeAgo(dateString) {
+  if (!dateString) return "unknown";
+  const date = new Date(dateString);
+  const seconds = Math.floor((new Date() - date) / 1000);
+  if (seconds < 0) return "just now";
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return interval + " yr" + (interval > 1 ? "s" : "") + " ago";
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return interval + " mo" + (interval > 1 ? "s" : "") + " ago";
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return interval + " day" + (interval > 1 ? "s" : "") + " ago";
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return interval + " hr" + (interval > 1 ? "s" : "") + " ago";
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return interval + " min" + (interval > 1 ? "s" : "") + " ago";
+  if (seconds < 10) return "just now";
+  return Math.floor(seconds) + " sec ago";
+}
+
+function getSignersText(status) {
+  switch (status) {
+    case "signed": return "You (Completed)";
+    case "pending": return "Awaiting your sign";
+    case "rejected": return "Rejected";
+    case "waiting": return "Waiting for others";
+    default: return "Awaiting your sign";
+  }
+}
+
+/* ─── StatusBadge ───────────────────────────────────────────────── */
+function Badge({ status }) {
+  const labels = { signed:"Signed", waiting:"Waiting", pending:"Action Required", rejected:"Rejected" };
+  const { bg, color } = S.status[status] || S.status.pending;
+  return (
+    <span style={{ background:bg, color, fontSize:11, fontWeight:600,
+                   padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap",
+                   letterSpacing:"0.02em" }}>
+      {labels[status] || "Action Required"}
+    </span>
+  );
+}
+
+/* ─── Main Dashboard ────────────────────────────────────────────── */
+export default function Dashboard() {
+  const [nav,    setNav   ] = useState("dashboard");
+  const [filter, setFilter] = useState("all");
+  const [drag,   setDrag  ] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [activeDoc, setActiveDoc] = useState(null);
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // States
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(false); // keep loading false for empty table state
-  const [uploading, setUploading] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState(null);
-  const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [activeTab, setActiveTab] = useState('Overview');
-
-  const fileInputRef = useRef(null);
-
-  // Reset page number and total pages on preview change
-  useEffect(() => {
-    if (previewDoc) {
-      setPageNumber(1);
-      setNumPages(null);
-    }
-  }, [previewDoc]);
-
-  const onDocumentLoadSuccess = ({ numPages }) => {
-    setNumPages(numPages);
-  };
-
-  // Optional: We can leave API fetch commented out or simple to keep document list empty as requested
-  // useEffect(() => {
-  //   fetchDocuments();
-  // }, []);
-
+  // Fetch documents from server
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const res = await API.get('/docs/');
-      setDocuments(res.data.documents);
+      setError(null);
+      const res = await API.get("/docs");
+      setDocuments(res.data.documents || []);
     } catch (err) {
-      console.error('Failed to fetch documents', err);
+      console.error("Error fetching documents:", err);
+      setError("Failed to load documents.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('pdf', file);
-
-    setUploading(true);
-    try {
-      await API.post('/docs/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      // Optionally fetch documents or set local success
-      fetchDocuments();
-    } catch (err) {
-      alert('Upload failed: ' + (err.response?.data?.message || 'Unknown error'));
-    } finally {
-      setUploading(false);
-      e.target.value = ''; // reset input
-    }
-  };
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/login");
   };
 
-  // Dynamic date string
-  const formattedDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const handleFileSelect = async (file) => {
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      alert("Only PDF files are allowed.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("pdf", file);
+    try {
+      setUploading(true);
+      await API.post("/docs/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      // Fetch latest document list
+      const res = await API.get("/docs");
+      setDocuments(res.data.documents || []);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert(err.response?.data?.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    document.getElementById("file-input").click();
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDrag(true);
+  };
+
+  const handleDragLeave = () => {
+    setDrag(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDrag(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
+  const docs = filter === "all" ? documents : documents.filter(d => d.status === filter);
+
+  // Dynamic statistics calculations
+  const pendingCount = documents.filter(d => d.status === "pending").length;
+  const waitingCount = documents.filter(d => d.status === "waiting").length;
+  const signedCount = documents.filter(d => d.status === "signed").length;
+  const totalCount = documents.length;
+
+  const statsData = [
+    { label:"Action Required",    value:pendingCount,  bg:S.status.pending.bg,  color:S.status.pending.color,  Icon:AlertCircle  },
+    { label:"Waiting for Others", value:waitingCount,  bg:S.status.waiting.bg,  color:S.status.waiting.color,  Icon:Clock        },
+    { label:"Completed",          value:signedCount,   bg:S.status.signed.bg,   color:S.status.signed.color,   Icon:CheckCircle  },
+    { label:"Total Documents",    value:totalCount,    bg:"#F0F0F7",             color:S.muted,                 Icon:FileText     },
+  ];
+
+  // Dynamic activity log generation from documents
+  const activities = [];
+  documents.forEach(doc => {
+    activities.push({
+      label: "You uploaded",
+      doc: doc.originalName.length > 20 ? doc.originalName.substring(0, 17) + "..." : doc.originalName,
+      time: formatTimeAgo(doc.createdAt),
+      timestamp: new Date(doc.createdAt).getTime()
+    });
+    if (doc.status === "signed") {
+      activities.push({
+        label: "You signed",
+        doc: doc.originalName.length > 20 ? doc.originalName.substring(0, 17) + "..." : doc.originalName,
+        time: formatTimeAgo(doc.updatedAt),
+        timestamp: new Date(doc.updatedAt).getTime()
+      });
+    } else if (doc.status === "rejected") {
+      activities.push({
+        label: "Rejected:",
+        doc: doc.originalName.length > 20 ? doc.originalName.substring(0, 17) + "..." : doc.originalName,
+        time: formatTimeAgo(doc.updatedAt),
+        timestamp: new Date(doc.updatedAt).getTime()
+      });
+    }
   });
 
-  const sidebarNavItems = [
-    { name: 'Overview' },
-    { name: 'Documents' },
-    { name: 'Signature Requests' },
-    { name: 'Audit Logs' },
-    { name: 'Notifications' },
-    { name: 'Profile' },
-  ];
+  const sortedActivities = activities
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 4);
 
-  const stats = [
-    { label: 'Total Documents', value: 0, iconColor: 'text-pink-400', borderColor: 'border-pink-500/20' },
-    { label: 'Pending', value: 0, iconColor: 'text-orange-400', borderColor: 'border-yellow-500/30' },
-    { label: 'Signed', value: 0, iconColor: 'text-pink-400', borderColor: 'border-pink-500/20' },
-    { label: 'Rejected', value: 0, iconColor: 'text-red-400', borderColor: 'border-red-500/30' },
-  ];
+  const card = { background:S.card, borderRadius:12, border:`1px solid ${S.border}` };
+
+  const firstLetter = (user?.name || "U").substring(0, 1).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden font-sans flex">
-      {/* Background Glow Effect */}
-      <div className="fixed left-1/2 top-1/4 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-pink-500/10 blur-[150px] pointer-events-none z-0" />
+    <div style={{ display:"flex", height:"100vh", overflow:"hidden",
+                  fontFamily:"'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                  background:S.bg, fontSize:14 }}>
 
-      {/* Sidebar navigation */}
-      <motion.aside
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4 }}
-        className="fixed left-0 top-0 h-screen w-64 bg-zinc-900/90 backdrop-blur-lg border-r border-pink-500/10 flex flex-col justify-between py-6 px-4 z-20"
-      >
-        <div className="flex flex-col">
-          {/* Logo / Brand */}
-          <div className="flex items-center gap-2 px-4 py-3 mb-8">
-            <span className="text-xl">📄</span>
-            <span className="text-pink-400 font-bold text-xl tracking-tight">DocSign</span>
+      {/* ════════════ SIDEBAR ════════════ */}
+      <aside style={{ width:240, minWidth:240, background:S.sidebar,
+                      display:"flex", flexDirection:"column", height:"100vh" }}>
+
+        {/* Logo */}
+        <div style={{ padding:"22px 18px 16px", borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:S.accent,
+                          display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Pen size={16} color="#fff" />
+            </div>
+            <div>
+              <div style={{ color:"#fff", fontWeight:700, fontSize:16, letterSpacing:"-0.01em" }}>
+                SignVault
+              </div>
+              <div style={{ color:"#404968", fontSize:10, fontWeight:500, marginTop:1 }}>
+                Document Platform
+              </div>
+            </div>
           </div>
-
-          {/* Nav Items */}
-          <nav className="space-y-1">
-            {sidebarNavItems.map((item) => {
-              const isActive = activeTab === item.name;
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => setActiveTab(item.name)}
-                  className={
-                    isActive
-                      ? 'w-full bg-pink-500/10 border border-pink-500/20 text-pink-400 rounded-xl px-4 py-3 flex items-center gap-3 font-medium transition text-left cursor-pointer'
-                      : 'w-full text-gray-400 hover:text-white hover:bg-zinc-800/50 rounded-xl px-4 py-3 flex items-center gap-3 transition text-left cursor-pointer'
-                  }
-                >
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-sm">{item.name}</span>
-                </button>
-              );
-            })}
-          </nav>
         </div>
 
-        {/* Logout Button */}
-        <div className="px-2">
-          <button
-            onClick={handleLogout}
-            className="w-full border border-red-500/30 hover:bg-red-500/10 text-red-400 rounded-xl px-4 py-2.5 transition flex items-center justify-center gap-2 cursor-pointer font-semibold text-sm"
-          >
-            <span> </span> Logout
-          </button>
-        </div>
-      </motion.aside>
+        {/* Nav items */}
+        <nav style={{ flex:1, padding:"14px 10px", overflowY:"auto" }}>
+          <p style={{ margin:"0 0 8px", padding:"0 10px", fontSize:10, fontWeight:700,
+                      color:"#353D58", letterSpacing:"0.08em", textTransform:"uppercase" }}>
+            Menu
+          </p>
+          {NAV.map(({ Icon, label, id }) => {
+            const active = nav === id;
+            const badgeValue = id === "waiting" ? waitingCount : undefined;
+            return (
+              <button key={id} onClick={() => setNav(id)} style={{
+                width:"100%", border:"none", cursor:"pointer", textAlign:"left",
+                display:"flex", alignItems:"center", gap:10,
+                padding:"9px 12px", borderRadius:8, marginBottom:2,
+                background: active ? S.accent : "transparent",
+                color:      active ? "#fff"    : "#8B94B2",
+                fontSize:13, fontWeight: active ? 600 : 400,
+                transition:"all 0.15s ease",
+              }}>
+                <Icon size={16} />
+                <span style={{ flex:1 }}>{label}</span>
+                {badgeValue !== undefined && badgeValue > 0 && (
+                  <span style={{ background: active ? "rgba(255,255,255,0.2)" : "#242B40",
+                                 color:      active ? "#fff" : "#6B758E",
+                                 fontSize:10, fontWeight:700, padding:"1px 7px", borderRadius:20 }}>
+                    {badgeValue}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
-      {/* Main Content Area */}
-      <motion.main
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="ml-64 flex-1 min-h-screen relative z-10 p-8 flex flex-col"
-      >
+        {/* User card */}
+        <div style={{ padding:"12px 10px", borderTop:"1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ background:"rgba(255,255,255,0.04)", borderRadius:10,
+                        padding:"10px 12px", display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:32, height:32, borderRadius:"50%", background:S.accent,
+                          flexShrink:0, display:"flex", alignItems:"center",
+                          justifyContent:"center", color:"#fff", fontWeight:700, fontSize:13 }}>
+              {firstLetter}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ color:"#DADEE8", fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {user?.name || "User"}
+              </div>
+              <div style={{ color:"#404968", fontSize:11, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {user?.email || "Email"}
+              </div>
+            </div>
+            <LogOut size={14} color="#404968" style={{ cursor:"pointer", flexShrink:0 }} onClick={handleLogout} />
+          </div>
+        </div>
+      </aside>
+
+      {/* ════════════ MAIN CONTENT ════════════ */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+
         {/* Top bar */}
-        <header className="flex justify-between items-center pb-6 border-b border-zinc-800 bg-transparent mb-8">
-          <div>
-            <h2 className="text-white font-bold text-xl flex items-center gap-2">
-              Good morning, {user?.name || 'User'}
-            </h2>
-            <p className="text-gray-400 text-sm mt-1">{formattedDate}</p>
+        <header style={{ background:S.card, borderBottom:`1px solid ${S.border}`,
+                         height:58, padding:"0 22px", flexShrink:0,
+                         display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8,
+                        background:S.bg, borderRadius:8, padding:"7px 12px",
+                        flex:1, maxWidth:300 }}>
+            <Search size={14} color={S.muted} />
+            <input placeholder="Search documents…" style={{
+              border:"none", background:"transparent", outline:"none",
+              fontSize:13, color:S.text, width:"100%",
+            }} />
           </div>
+          <div style={{ flex:1 }} />
 
-          <div className="flex items-center gap-4">
-            {/* Hidden PDF Upload input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleUpload}
-              accept="application/pdf"
-              className="hidden"
-              disabled={uploading}
-            />
-            <button
-              onClick={handleUploadClick}
-              disabled={uploading}
-              className="bg-pink-500 hover:bg-pink-400 text-black font-semibold rounded-xl px-4 py-2.5 transition cursor-pointer text-sm shadow-lg shadow-pink-500/10 flex items-center gap-2 disabled:opacity-50"
-            >
-              {uploading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4 text-black" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span>Uploading...</span>
-                </>
-              ) : (
-                <>
-                  <span>+</span> Upload Document
-                </>
-              )}
-            </button>
+          {/* Bell */}
+          <button style={{ position:"relative", width:36, height:36, borderRadius:8,
+                           background:S.bg, border:"none", cursor:"pointer",
+                           display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <Bell size={16} color={S.muted} />
+            <span style={{ position:"absolute", top:8, right:8, width:7, height:7,
+                           borderRadius:"50%", background:"#C97C2A", border:"1.5px solid #fff" }} />
+          </button>
+
+          {/* User chip */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer",
+                        padding:"5px 10px", borderRadius:8, border:`1px solid ${S.border}` }}>
+            <div style={{ width:28, height:28, borderRadius:"50%",
+                          background:S.accentLight, border:`2px solid ${S.accent}`,
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          color:S.accent, fontWeight:700, fontSize:12 }}>
+              {firstLetter}
+            </div>
+            <div>
+              <div style={{ fontSize:12, fontWeight:600, color:S.text, lineHeight:1.3 }}>
+                {user?.name || "User"}
+              </div>
+              <div style={{ fontSize:10, color:S.muted }}>
+                {user?.email || "Email"}
+              </div>
+            </div>
+            <ChevronDown size={13} color={S.muted} />
           </div>
         </header>
 
-        {/* Stats Row */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`bg-zinc-900/80 backdrop-blur-lg border ${stat.borderColor} rounded-2xl p-6 flex flex-col justify-between hover:border-pink-500/40 transition duration-300 relative overflow-hidden group`}
-            >
-              <div className={`${stat.iconColor} text-2xl mb-3`}>{stat.icon}</div>
-              <div className="text-white text-3xl font-bold mb-1">{stat.value}</div>
-              <div className="text-gray-400 text-sm font-medium">{stat.label}</div>
-            </motion.div>
-          ))}
-        </section>
+        {/* ─── Scrollable body ─── */}
+        <div style={{ flex:1, overflowY:"auto", padding:"22px 22px 40px" }}>
 
-        {/* Recent Documents Table Section */}
-        <section className="flex-1">
-          <div className="bg-zinc-900/80 backdrop-blur-lg border border-pink-500/20 rounded-2xl p-6 shadow-xl">
-            <h3 className="text-white font-semibold text-base mb-4">Recent Documents</h3>
+          {/* Welcome + action buttons */}
+          <div style={{ display:"flex", justifyContent:"space-between",
+                        alignItems:"flex-start", marginBottom:22 }}>
+            <div>
+              <h1 style={{ margin:0, fontSize:21, fontWeight:700, color:S.text,
+                           letterSpacing:"-0.02em" }}>
+                Good morning, {user?.name || "User"} 👋
+              </h1>
+              <p style={{ margin:"4px 0 0", fontSize:13, color:S.muted }}>
+                You have{" "}
+                <span style={{ color:"#C97C2A", fontWeight:600 }}>{pendingCount} documents</span>
+                {" "}awaiting your signature.
+              </p>
+            </div>
+            <div style={{ display:"flex", gap:10, flexShrink:0 }}>
+              <button style={{
+                display:"flex", alignItems:"center", gap:6, padding:"8px 15px",
+                borderRadius:8, border:`1.5px solid ${S.border}`,
+                background:S.card, color:S.text, fontSize:13, fontWeight:500, cursor:"pointer",
+              }}>
+                <Send size={13} /> Send for Signature
+              </button>
+              <button onClick={triggerFileInput} style={{
+                display:"flex", alignItems:"center", gap:6, padding:"8px 18px",
+                borderRadius:8, border:"none", background:S.accent, color:"#fff",
+                fontSize:13, fontWeight:600, cursor:"pointer",
+              }}>
+                <Plus size={14} /> {uploading ? "Uploading..." : "Upload Document"}
+              </button>
+            </div>
+          </div>
 
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <svg className="animate-spin h-8 w-8 text-pink-400 mb-3" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <p className="text-gray-400 text-sm">Loading documents...</p>
+          {/* Stats row */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, marginBottom:20 }}>
+            {statsData.map(({ label, value, bg, color, Icon }) => (
+              <div key={label} style={{ ...card, padding:"16px 18px",
+                                        display:"flex", alignItems:"center", gap:14 }}>
+                <div style={{ width:42, height:42, borderRadius:10, background:bg, flexShrink:0,
+                              display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <Icon size={20} color={color} />
+                </div>
+                <div>
+                  <div style={{ fontSize:26, fontWeight:700, color:S.text, lineHeight:1 }}>
+                    {value}
+                  </div>
+                  <div style={{ fontSize:11, color:S.muted, marginTop:4 }}>{label}</div>
+                </div>
               </div>
-            ) : documents.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <p className="text-gray-500 text-sm font-semibold">No documents uploaded yet</p>
-                <p className="text-zinc-600 text-xs mt-1">Get started by clicking the button in the top right.</p>
+            ))}
+          </div>
+
+          {/* Two-column layout */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 290px", gap:18 }}>
+
+            {/* ── Documents table ── */}
+            <div style={{ ...card, overflow:"hidden" }}>
+
+              {/* Table header */}
+              <div style={{ padding:"16px 20px 0",
+                            display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <div>
+                  <h2 style={{ margin:0, fontSize:14, fontWeight:700, color:S.text }}>
+                    Recent Documents
+                  </h2>
+                  <p style={{ margin:"2px 0 0", fontSize:11, color:S.muted }}>
+                    {documents.length} documents in your vault
+                  </p>
+                </div>
+                <button style={{ display:"flex", alignItems:"center", gap:4, fontSize:12,
+                                 color:S.accent, fontWeight:600, background:"none",
+                                 border:"none", cursor:"pointer" }}>
+                  View all <ArrowUpRight size={12} />
+                </button>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+
+              {/* Filter tabs */}
+              <div style={{ padding:"10px 20px 0", display:"flex", gap:2,
+                            borderBottom:`1px solid ${S.border}` }}>
+                {FILTERS.map(({ id, label }) => {
+                  const active = filter === id;
+                  return (
+                    <button key={id} onClick={() => setFilter(id)} style={{
+                      padding:"7px 12px", border:"none", cursor:"pointer", fontSize:12,
+                      fontWeight: active ? 600 : 400,
+                      background: active ? S.accentLight : "transparent",
+                      color:      active ? S.accent      : S.muted,
+                      borderRadius:"6px 6px 0 0",
+                      borderBottom: active ? `2px solid ${S.accent}` : "2px solid transparent",
+                      marginBottom:-1,
+                    }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Table / Loader / Error / Empty state */}
+              {loading ? (
+                <div style={{ padding:"40px", textAlign:"center", color:S.muted }}>
+                  Loading documents...
+                </div>
+              ) : error ? (
+                <div style={{ padding:"40px", textAlign:"center", color:"#A83620" }}>
+                  {error}
+                </div>
+              ) : docs.length === 0 ? (
+                <div style={{ padding:"40px", textAlign:"center", color:S.muted }}>
+                  No documents found. Upload a PDF to get started!
+                </div>
+              ) : (
+                <table style={{ width:"100%", borderCollapse:"collapse" }}>
                   <thead>
-                    <tr className="text-gray-400 text-xs uppercase tracking-wider border-b border-zinc-800">
-                      <th className="pb-3 font-semibold">Document Name</th>
-                      <th className="pb-3 font-semibold">Status</th>
-                      <th className="pb-3 font-semibold">Date</th>
-                      <th className="pb-3 font-semibold text-right">Actions</th>
+                    <tr style={{ background:"#FAFBFC" }}>
+                      {["Document","Status","Signers","Updated",""].map(h => (
+                        <th key={h} style={{
+                          padding:"10px 18px", textAlign:"left",
+                          fontSize:10, fontWeight:700, color:S.muted,
+                          letterSpacing:"0.05em", textTransform:"uppercase",
+                          borderBottom:`1px solid ${S.border}`,
+                        }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {documents.map((doc) => {
-                      // Status pill colors mapping
-                      let statusStyle = 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-400';
-                      if (doc.status === 'signed') {
-                        statusStyle = 'bg-pink-500/10 border border-pink-500/30 text-pink-400';
-                      } else if (doc.status === 'rejected') {
-                        statusStyle = 'bg-red-500/10 border border-red-500/30 text-red-400';
-                      }
+                    {docs.map((doc, i) => (
+                      <tr key={doc._id}
+                          style={{ borderBottom: i < docs.length - 1 ? `1px solid ${S.border}` : "none",
+                                   transition:"background 0.1s" }}
+                          onMouseEnter={e => e.currentTarget.style.background = "#FAFBFD"}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
 
-                      return (
-                        <tr key={doc._id} className="text-white text-sm border-b border-zinc-800/50 hover:bg-zinc-800/50 transition">
-                          <td className="py-4 font-medium max-w-[200px] truncate">
-                            <span className="mr-2">📄</span>
-                            {doc.originalName}
-                          </td>
-                          <td className="py-4">
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${statusStyle}`}>
-                              {doc.status}
-                            </span>
-                          </td>
-                          <td className="py-4 text-gray-400">
-                            {new Date(doc.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => setPreviewDoc(doc)}
-                                className="text-gray-400 hover:text-pink-400 transition p-1.5 rounded-lg hover:bg-zinc-800/50"
-                                title="View"
-                              >
-                                👁️
-                              </button>
-                              <button
-                                className="text-gray-400 hover:text-pink-400 transition p-1.5 rounded-lg hover:bg-zinc-800/50"
-                                title="Send"
-                              >
-                                📤
-                              </button>
-                              <a
-                                href={`http://localhost:5000/uploads/${doc.fileName}`}
-                                download={doc.originalName}
-                                className="text-gray-400 hover:text-pink-400 transition p-1.5 rounded-lg hover:bg-zinc-800/50 inline-block"
-                                title="Download"
-                              >
-                                ⬇️
-                              </a>
-                              <button
-                                className="text-gray-400 hover:text-red-400 transition p-1.5 rounded-lg hover:bg-zinc-800/50"
-                                title="Delete"
-                              >
-                                🗑️
-                              </button>
+                        {/* Name + size */}
+                        <td style={{ padding:"13px 18px" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                            <div style={{ width:30, height:36, borderRadius:5,
+                                          background:S.accentLight, flexShrink:0,
+                                          display:"flex", alignItems:"center", justifyContent:"center" }}>
+                              <FileText size={14} color={S.accent} />
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            <div>
+                              <div style={{ fontSize:13, fontWeight:500, color:S.text,
+                                            maxWidth:200, overflow:"hidden",
+                                            textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                {doc.originalName}
+                              </div>
+                              <div style={{ fontSize:11, color:S.muted, marginTop:1 }}>
+                                {formatBytes(doc.fileSize)}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td style={{ padding:"13px 18px" }}><Badge status={doc.status} /></td>
+                        <td style={{ padding:"13px 18px", fontSize:12, color:S.muted }}>
+                          {getSignersText(doc.status)}
+                        </td>
+                        <td style={{ padding:"13px 18px", fontSize:12, color:S.muted, whiteSpace:"nowrap" }}>
+                          {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ padding:"13px 18px" }}>
+                          <div style={{ display:"flex", gap:6 }}>
+                            <button
+                              onClick={() => navigate(`/editor/${doc._id}`)}
+                              style={{
+                                display:"flex", alignItems:"center", gap:4,
+                                padding:"4px 10px", borderRadius:6,
+                                border:`1px solid ${S.border}`, background:"transparent",
+                                cursor:"pointer", fontSize:11, color:S.text, fontWeight:500,
+                              }}
+                            >
+                              <Pen size={11} color={S.accent} /> Open Editor
+                            </button>
+                            <button
+                              onClick={() => setActiveDoc(doc)}
+                              style={{
+                                display:"flex", alignItems:"center", gap:4,
+                                padding:"4px 10px", borderRadius:6,
+                                border:`1px solid ${S.border}`, background:"transparent",
+                                cursor:"pointer", fontSize:11, color:S.text, fontWeight:500,
+                              }}
+                            >
+                              <Eye size={11} /> View
+                            </button>
+                            <button style={{
+                              padding:"4px 7px", borderRadius:6, border:`1px solid ${S.border}`,
+                              background:"transparent", cursor:"pointer",
+                              display:"flex", alignItems:"center",
+                            }}>
+                              <MoreHorizontal size={12} color={S.muted} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              </div>
-            )}
-          </div>
-        </section>
-      </motion.main>
+              )}
+            </div>
 
-      {/* PDF Preview Modal */}
-      {previewDoc && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-pink-500/20 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-zinc-800 bg-zinc-950/50">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📄</span>
-                <h3 className="font-semibold text-white text-sm truncate max-w-[400px]">
-                  {previewDoc.originalName}
+            {/* ── Right column ── */}
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+              {/* Upload widget */}
+              <div style={{ ...card, padding:"16px 18px" }}>
+                <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:S.text }}>
+                  Upload Document
                 </h3>
+                <input
+                  type="file"
+                  id="file-input"
+                  accept="application/pdf"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileSelect(e.target.files[0]);
+                    }
+                  }}
+                />
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={triggerFileInput}
+                  style={{
+                    border:`2px dashed ${drag ? S.accent : S.border}`,
+                    borderRadius:10, padding:"22px 14px", textAlign:"center",
+                    background: drag ? S.accentLight : "#FAFBFC",
+                    cursor:"pointer", transition:"all 0.2s",
+                  }}>
+                  <div style={{ width:40, height:40, borderRadius:10, background:S.accentLight,
+                                margin:"0 auto 10px",
+                                display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <Upload size={18} color={S.accent} />
+                  </div>
+                  <p style={{ margin:"0 0 3px", fontSize:13, fontWeight:600, color:S.text }}>
+                    {uploading ? "Uploading PDF..." : "Drop PDF here"}
+                  </p>
+                  <p style={{ margin:0, fontSize:12, color:S.muted }}>
+                    or{" "}
+                    <span style={{ color:S.accent, fontWeight:600, cursor:"pointer" }}>
+                      browse files
+                    </span>
+                  </p>
+                  <p style={{ margin:"6px 0 0", fontSize:10, color:"#B0B5C9" }}>
+                    PDF only · Max 10 MB
+                  </p>
+                </div>
+              </div>
+
+              {/* Audit / Activity */}
+              <div style={{ ...card, padding:"16px 18px", flex:1 }}>
+                <div style={{ display:"flex", justifyContent:"space-between",
+                              alignItems:"center", marginBottom:14 }}>
+                  <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:S.text }}>
+                    Recent Activity
+                  </h3>
+                  <button style={{ fontSize:11, color:S.accent, fontWeight:600,
+                                   background:"none", border:"none", cursor:"pointer" }}>
+                    Full log →
+                  </button>
+                </div>
+
+                {/* Timeline */}
+                <div style={{ display:"flex", flexDirection:"column" }}>
+                  {sortedActivities.length === 0 ? (
+                    <div style={{ fontSize:12, color:S.muted, textAlign:"center", padding:"20px 0" }}>
+                      No recent activity
+                    </div>
+                  ) : (
+                    sortedActivities.map((item, i) => (
+                      <div key={i} style={{ display:"flex", gap:10, position:"relative" }}>
+                        {i < sortedActivities.length - 1 && (
+                          <div style={{ position:"absolute", left:11, top:22, bottom:-4,
+                                        width:1, background:S.border }} />
+                        )}
+                        <div style={{ width:22, height:22, borderRadius:"50%",
+                                      background:S.accentLight, flexShrink:0, marginTop:2,
+                                      display:"flex", alignItems:"center", justifyContent:"center",
+                                      zIndex:1 }}>
+                          <ShieldCheck size={11} color={S.accent} />
+                        </div>
+                        <div style={{ paddingBottom: i < sortedActivities.length - 1 ? 14 : 0, flex:1 }}>
+                          <p style={{ margin:0, fontSize:12, color:S.text, lineHeight:1.5 }}>
+                            <span style={{ fontWeight:500 }}>{item.label}</span>{" "}
+                            <span style={{ color:S.accent, fontWeight:600 }}>"{item.doc}"</span>
+                          </p>
+                          <p style={{ margin:"2px 0 0", fontSize:10, color:S.muted }}>{item.time}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════ DOCUMENT VIEWER MODAL ════════════ */}
+      {activeDoc && (
+        <div style={{
+          position: "fixed", inset: 0,
+          background: "rgba(28, 31, 46, 0.75)",
+          backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1000, padding: "20px",
+          animation: "fadeIn 0.2s ease",
+        }}>
+          <div style={{
+            background: "#fff",
+            borderRadius: 16,
+            width: "100%",
+            maxWidth: 920,
+            maxHeight: "90vh",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+            overflow: "hidden"
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: "16px 24px",
+              borderBottom: `1px solid ${S.border}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#FAFBFD"
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: S.text }}>
+                  {activeDoc.originalName}
+                </h3>
+                <p style={{ margin: "2px 0 0", fontSize: 11, color: S.muted }}>
+                  Size: {formatBytes(activeDoc.fileSize)}
+                </p>
               </div>
               <button
-                onClick={() => setPreviewDoc(null)}
-                className="text-gray-400 hover:text-red-400 hover:bg-zinc-800/50 p-1.5 rounded-lg transition cursor-pointer"
+                onClick={() => { setActiveDoc(null); fetchDocuments(); }}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  fontSize: 20,
+                  cursor: "pointer",
+                  color: S.muted,
+                  padding: 8,
+                  lineHeight: 1,
+                  transition: "color 0.15s"
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = "#1C1F2E"}
+                onMouseLeave={e => e.currentTarget.style.color = S.muted}
               >
                 ✕
               </button>
             </div>
 
-            {/* Modal content */}
-            <div className="flex-1 overflow-y-auto p-6 flex justify-center bg-zinc-950/20">
-              <div className="shadow-lg border border-zinc-800 rounded-lg overflow-hidden bg-white max-w-full">
-                <Document
-                  file={`http://localhost:5000/uploads/${previewDoc.fileName}`}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                  onLoadError={(err) => console.error('PDF load error:', err)}
-                  loading={
-                    <div className="flex flex-col items-center justify-center p-12 gap-3 min-w-[500px] bg-zinc-900 text-white">
-                      <svg className="animate-spin h-8 w-8 text-pink-400" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span className="text-sm text-gray-400 font-medium">Loading document...</span>
-                    </div>
-                  }
-                  error={
-                    <div className="flex flex-col items-center justify-center p-12 text-center text-red-400 bg-zinc-900 min-w-[500px]">
-                      <span className="text-3xl mb-2">⚠️</span>
-                      <p className="font-semibold text-sm text-white">Failed to load PDF file.</p>
-                      <p className="text-xs text-gray-400 mt-1">Please make sure the server is running and the file is valid.</p>
-                    </div>
-                  }
-                >
-                  <Page pageNumber={pageNumber} width={560} />
-                </Document>
-              </div>
+            {/* Modal Body */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 24px" }}>
+              <SignaturePlacer
+                fileId={activeDoc._id}
+                fileUrl={`http://localhost:5000/uploads/${activeDoc.fileName}`}
+              />
             </div>
-
-            {/* Modal controls */}
-            {numPages && numPages > 1 && (
-              <div className="flex justify-between items-center px-6 py-4 border-t border-zinc-800 bg-zinc-950/50">
-                <button
-                  disabled={pageNumber <= 1}
-                  onClick={() => setPageNumber((prev) => Math.max(prev - 1, 1))}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-transparent border border-white/20 rounded-xl hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
-                >
-                  ← Previous
-                </button>
-                <span className="text-xs font-medium text-gray-400">
-                  Page {pageNumber} of {numPages}
-                </span>
-                <button
-                  disabled={pageNumber >= numPages}
-                  onClick={() => setPageNumber((prev) => Math.min(prev + 1, numPages))}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-transparent border border-white/20 rounded-xl hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
-                >
-                  Next →
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
     </div>
   );
-};
-
-export default Dashboard;
+}

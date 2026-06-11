@@ -24,9 +24,11 @@ app.use('/uploads', express.static(uploadsDir));
 // Routes
 const authRoutes = require('./routes/auth');
 const docRoutes = require('./routes/docs');        // ✅ Add this
+const signatureRoutes = require('./routes/signatures');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/docs', docRoutes);                   // ✅ Add this
+app.use('/api/signatures', signatureRoutes);
 
 app.get('/', (req, res) => res.send('Server is running ✅'));
 

@@ -23,7 +23,7 @@ const documentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'signed', 'rejected'],
+    enum: ['pending', 'signed', 'rejected', 'waiting'],
     default: 'pending'
   }
 }, { timestamps: true });

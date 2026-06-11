@@ -56,4 +56,18 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// ─── GET SINGLE DOCUMENT BY ID ───────────────────────
+// GET /api/docs/:id
+router.get('/:id', authMiddleware, async (req, res) => {
+  try {
+    const doc = await Document.findOne({ _id: req.params.id, owner: req.user.userId });
+    if (!doc) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+    res.status(200).json({ document: doc });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;
