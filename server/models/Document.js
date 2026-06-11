@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const documentSchema = new mongoose.Schema({
-  owner: {
+  uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
@@ -12,7 +12,8 @@ const documentSchema = new mongoose.Schema({
   },
   fileName: {
     type: String,
-    required: true
+    required: true,
+    alias: 'filename'
   },
   filePath: {
     type: String,
@@ -25,6 +26,10 @@ const documentSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'signed', 'rejected', 'waiting'],
     default: 'pending'
+  },
+  signerEmail: {
+    type: String,
+    default: null
   }
 }, { timestamps: true });
 

@@ -99,7 +99,7 @@ export default function Register() {
               name="name"
               value={form.name}
               onChange={handleChange}
-              placeholder="Antra Sharma"
+              placeholder="John Doe"
               className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white focus:border-pink-500 focus:outline-none transition duration-200"
               required
             />
@@ -119,7 +119,7 @@ export default function Register() {
               name="email"
               value={form.email}
               onChange={handleChange}
-              placeholder="antra@example.com"
+              placeholder="email@example.com"
               className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white focus:border-pink-500 focus:outline-none transition duration-200"
               required
             />

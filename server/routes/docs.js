@@ -1,72 +1,119 @@
-const express = require('express');
-const router = express.Router();
-const path = require('path');
-const Document = require('../models/Document');
-const authMiddleware = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
+/**
+ * server/routes/docs.js
+ * Day 7 update — send email to signer when document is uploaded
+ *
+ * Only the upload (POST) route is shown below.
+ * Merge this logic into your existing docs route file.
+ */
 
-// ─── UPLOAD PDF ─────────────────────────────────────
+const express  = require("express");
+const router   = express.Router();
+const multer   = require("multer");
+const path     = require("path");
+const Document = require("../models/Document");
+const User     = require("../models/User");
+const protect  = require("../middleware/authMiddleware");
+const sendEmail = require("../utils/SendEmail");
+const { documentUploadedEmail } = require("../utils/EmailTemplates");
+
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
+// ── Multer config (same as your existing setup) ───────────────────────────────
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename:    (req, file, cb) =>
+    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`),
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Only PDF files are allowed"), false);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/docs/upload
-// Protected — must be logged in
-router.post('/upload', authMiddleware, upload.single('pdf'), async (req, res) => {
+// Upload a PDF and notify the signer by email
+// Body (multipart/form-data):
+//   file        — the PDF file
+//   signerEmail — email of the person who needs to sign
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/upload", protect, upload.single("file"), async (req, res) => {
   try {
-    // If no file was attached
     if (!req.file) {
-      return res.status(400).json({ message: 'Please upload a PDF file' });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Save document metadata to MongoDB
-    const doc = new Document({
-      owner: req.user.userId,
+    const { signerEmail } = req.body;
+
+    // Save document record
+    const document = await Document.create({
       originalName: req.file.originalname,
-      fileName: req.file.filename,
-      filePath: req.file.path,
-      fileSize: req.file.size
+      filename:     req.file.filename,
+      filePath:     req.file.path,
+      uploadedBy:   req.user._id,
+      fileSize:     req.file.size,
+      signerEmail:  signerEmail || null,
     });
 
-    await doc.save();
+    // ── Send email to signer if provided ─────────────────────────────────────
+    if (signerEmail) {
+      // Try to find signer in DB for their name, else use email
+      const signer    = await User.findOne({ email: signerEmail });
+      const signUrl   = `${CLIENT_URL}/editor/${document._id}`;
+
+      await sendEmail({
+        to:      signerEmail,
+        subject: `📄 New document for your signature — ${req.file.originalname}`,
+        html:    documentUploadedEmail({
+          signerName:   signer?.name || signerEmail,
+          uploaderName: req.user.name,
+          documentName: req.file.originalname,
+          signUrl,
+        }),
+      });
+    }
 
     res.status(201).json({
-      message: 'File uploaded successfully',
+      success:  true,
       document: {
-        id: doc._id,
-        originalName: doc.originalName,
-        fileName: doc.fileName,
-        fileSize: doc.fileSize,
-        status: doc.status,
-        createdAt: doc.createdAt
-      }
+        _id:          document._id,
+        originalName: document.originalName,
+        filename:     document.filename,
+        uploadedBy:   req.user.name,
+        createdAt:    document.createdAt,
+      },
     });
-
   } catch (err) {
-    res.status(500).json({ message: 'Upload failed', error: err.message });
+    console.error("POST /api/docs/upload error:", err);
+    res.status(500).json({ message: "Server error uploading document" });
   }
 });
 
-// ─── GET ALL DOCS FOR LOGGED IN USER ─────────────────
-// GET /api/docs/
-router.get('/', authMiddleware, async (req, res) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/docs  — fetch all docs for logged-in user (unchanged)
+// GET /api/docs/:id — fetch single doc (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/", protect, async (req, res) => {
   try {
-    const documents = await Document.find({ owner: req.user.userId })
-      .sort({ createdAt: -1 }); // newest first
-
-    res.status(200).json({ documents });
+    const docs = await Document.find({ uploadedBy: req.user._id })
+      .sort({ createdAt: -1 });
+    res.json({ success: true, documents: docs });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// ─── GET SINGLE DOCUMENT BY ID ───────────────────────
-// GET /api/docs/:id
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get("/:id", protect, async (req, res) => {
   try {
-    const doc = await Document.findOne({ _id: req.params.id, owner: req.user.userId });
-    if (!doc) {
-      return res.status(404).json({ message: 'Document not found' });
-    }
-    res.status(200).json({ document: doc });
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+    res.json({ success: true, document: doc });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

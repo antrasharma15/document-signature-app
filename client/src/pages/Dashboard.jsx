@@ -142,7 +142,7 @@ export default function Dashboard() {
       return;
     }
     const formData = new FormData();
-    formData.append("pdf", file);
+    formData.append("file", file);
     try {
       setUploading(true);
       await API.post("/docs/upload", formData, {
