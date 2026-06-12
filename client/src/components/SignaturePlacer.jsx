@@ -151,6 +151,7 @@ export default function SignaturePlacer({ fileId, fileUrl }) {
   const [pdfSize, setPdfSize]           = useState({ width: 0, height: 0 });
   const [loading, setLoading]           = useState(true);
   const [saving, setSaving]             = useState(false);
+  const [finalizing, setFinalizing]     = useState(false);
   const [error, setError]               = useState(null);
   const [placingMode, setPlacingMode]   = useState(false); // click-to-place toggle
   const [toast, setToast]               = useState(null);
@@ -234,6 +235,49 @@ export default function SignaturePlacer({ fileId, fileUrl }) {
     }
   };
 
+  // ── finalize signature and download ─────────────────────────────────────────
+  const handleFinalize = async () => {
+    const signedSigs = signatures.filter(s => s.status === "signed");
+    if (signedSigs.length === 0) {
+      showToast("No signed signatures to finalize.", "error");
+      return;
+    }
+
+    setFinalizing(true);
+    try {
+      showToast("Finalizing document...", "success");
+      const res = await API.post(`/signatures/finalize/${fileId}`);
+      const { downloadUrl, signedFile } = res.data;
+
+      // Strip "/api" prefix if present because the API axios instance has it in baseURL
+      const requestUrl = downloadUrl.startsWith("/api")
+        ? downloadUrl.replace("/api", "")
+        : downloadUrl;
+
+      // Fetch the file as a blob since the download route is authenticated
+      const fileRes = await API.get(requestUrl, {
+        responseType: "blob"
+      });
+
+      // Trigger download
+      const blobUrl = window.URL.createObjectURL(new Blob([fileRes.data]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = signedFile || "signed_document.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
+      showToast("Signed PDF downloaded successfully! ✓");
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to finalize signature.", "error");
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
   // ── toast helper ────────────────────────────────────────────────────────────
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -249,7 +293,7 @@ export default function SignaturePlacer({ fileId, fileUrl }) {
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", maxWidth: 860, margin: "0 auto", padding: "24px 16px" }}>
 
       {/* ── Header ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyvalue: "space-between", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#111827" }}>
             Signature Placement
@@ -259,33 +303,62 @@ export default function SignaturePlacer({ fileId, fileUrl }) {
           </p>
         </div>
 
-        <button
-          onClick={() => setPlacingMode((v) => !v)}
-          disabled={saving}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: "none",
-            cursor: saving ? "not-allowed" : "pointer",
-            fontWeight: 600,
-            fontSize: 13,
-            background: placingMode ? "#F43F5E" : "#2563EB",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            boxShadow: placingMode
-              ? "0 2px 8px rgba(244,63,94,0.35)"
-              : "0 2px 8px rgba(37,99,235,0.30)",
-            transition: "background 0.2s, box-shadow 0.2s",
-          }}
-        >
-          {placingMode ? (
-            <><span>✕</span> Cancel Placing</>
-          ) : (
-            <><span>✍</span> Place Signature</>
+        <div style={{ display: "flex", gap: 10 }}>
+          {signatures.some(s => s.status === "signed") && (
+            <button
+              onClick={handleFinalize}
+              disabled={finalizing}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 8,
+                border: "none",
+                cursor: finalizing ? "not-allowed" : "pointer",
+                fontWeight: 600,
+                fontSize: 13,
+                background: finalizing ? "#D1D5DB" : "#16A34A",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                boxShadow: finalizing
+                  ? "none"
+                  : "0 2px 8px rgba(22,163,74,0.30)",
+                transition: "background 0.2s, box-shadow 0.2s",
+              }}
+            >
+              <span>{finalizing ? "⏳" : "✅"}</span>
+              {finalizing ? "Finalizing..." : "Finalize & Download"}
+            </button>
           )}
-        </button>
+
+          <button
+            onClick={() => setPlacingMode((v) => !v)}
+            disabled={saving || finalizing}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "none",
+              cursor: (saving || finalizing) ? "not-allowed" : "pointer",
+              fontWeight: 600,
+              fontSize: 13,
+              background: placingMode ? "#F43F5E" : "#2563EB",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              boxShadow: placingMode
+                ? "0 2px 8px rgba(244,63,94,0.35)"
+                : "0 2px 8px rgba(37,99,235,0.30)",
+              transition: "background 0.2s, box-shadow 0.2s",
+            }}
+          >
+            {placingMode ? (
+              <><span>✕</span> Cancel Placing</>
+            ) : (
+              <><span>✍</span> Place Signature</>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Placing mode banner ── */}

@@ -5,6 +5,9 @@
 
 const express   = require("express");
 const router    = express.Router();
+const { PDFDocument } = require("pdf-lib");
+const fs        = require("fs");
+const path      = require("path");
 const Signature = require("../models/Signature");
 const Document  = require("../models/Document");   // your existing Document model
 const User      = require("../models/User");        // your existing User model
@@ -188,6 +191,133 @@ router.delete("/:id", protect, async (req, res) => {
   } catch (err) {
     console.error("DELETE /api/signatures/:id error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/signatures/finalize/:docId
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/finalize/:docId", protect, async (req, res) => {
+  try {
+    // 1. Find the document
+    const doc = await Document.findById(req.params.docId);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    // 2. Find all signatures for this document (database field is fileId)
+    const signatures = await Signature.find({ fileId: req.params.docId });
+    if (!signatures.length) {
+      return res.status(400).json({ message: "No signatures found for this document" });
+    }
+
+    // 3. Read the original PDF from disk
+    const pdfPath = path.resolve(doc.filePath);
+    if (!fs.existsSync(pdfPath)) {
+      return res.status(404).json({ message: "Original PDF file not found on disk" });
+    }
+    const existingPdfBytes = fs.readFileSync(pdfPath);
+
+    // 4. Load it into pdf-lib
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+    // 5. Loop over each signature and embed it
+    for (const sig of signatures) {
+      if (!sig.signatureImage) continue; // skip if no image saved
+
+      // sig.signatureImage is like: "data:image/png;base64,iVBORw0..."
+      // We need to strip the prefix and get raw base64
+      const base64Data = sig.signatureImage.split(",")[1];
+      const imageBytes = Buffer.from(base64Data, "base64");
+
+      // Embed the image into the PDF document (support both PNG and JPG)
+      const isJpg = sig.signatureImage.startsWith("data:image/jpeg") || sig.signatureImage.startsWith("data:image/jpg");
+      let embeddedImage;
+      if (isJpg) {
+        embeddedImage = await pdfDoc.embedJpg(imageBytes);
+      } else {
+        embeddedImage = await pdfDoc.embedPng(imageBytes);
+      }
+
+      // Get the page (sig.page is 1-indexed, pdf-lib pages array is 0-indexed)
+      const pages = pdfDoc.getPages();
+      const pageIndex = sig.page - 1;
+      if (pageIndex < 0 || pageIndex >= pages.length) continue;
+
+      const page = pages[pageIndex];
+      const { width: pageWidth, height: pageHeight } = page.getSize();
+
+      // The frontend editor renders the PDF at a width of 720px.
+      // We scale the signature width & height proportionally relative to this base width.
+      const refWidth = 720;
+      const scale = pageWidth / refWidth;
+      const sigWidth = (sig.width || 150) * scale;
+      const sigHeight = (sig.height || 50) * scale;
+
+      // Convert percentage coordinates (0-100) to actual PDF points
+      const pdfX = (sig.x / 100) * pageWidth;
+      // Flip Y: PDF origin is bottom-left, database coordinates are percentage from top
+      const pdfY = pageHeight - ((sig.y / 100) * pageHeight) - sigHeight;
+
+      // Draw the image on the page
+      page.drawImage(embeddedImage, {
+        x: pdfX,
+        y: pdfY,
+        width: sigWidth,
+        height: sigHeight,
+      });
+    }
+
+    // 6. Serialize the modified PDF to bytes
+    const signedPdfBytes = await pdfDoc.save();
+
+    // 7. Save to disk as a new file: signed_<originalfilename>
+    const signedFilename = `signed_${doc.filename || doc.fileName}`;
+    const signedFilePath = path.join("uploads", signedFilename);
+    fs.writeFileSync(signedFilePath, signedPdfBytes);
+
+    // 8. Respond with the path so frontend can download it
+    res.status(200).json({
+      message: "PDF signed successfully",
+      signedFile: signedFilename,
+      downloadUrl: `/api/signatures/download/${signedFilename}`,
+    });
+  } catch (err) {
+    console.error("Finalize error:", err);
+    res.status(500).json({ message: "Failed to generate signed PDF", error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/signatures/download/:filename
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/download/:filename", protect, (req, res) => {
+  try {
+    const filename = req.params.filename;
+    
+    // Security check: path traversal protection
+    if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+      return res.status(400).json({ message: "Invalid filename" });
+    }
+
+    const filePath = path.resolve("uploads", filename);
+
+    // Security check: make sure the file actually exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "Signed file not found" });
+    }
+
+    // Set headers so browser downloads it instead of opening it
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`
+    );
+
+    // Stream the file to the response
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (err) {
+    console.error("Download error:", err);
+    res.status(500).json({ message: "Server error during download" });
   }
 });
 
