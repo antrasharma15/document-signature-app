@@ -19,7 +19,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useParams } from "react-router-dom";
-import API from "../api/axios";
+import API, { API_BASE_URL } from "../api/axios";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -362,7 +362,7 @@ export default function PDFSignatureEditor() {
       .then(res => {
         const doc = res.data.document;
         const name = doc.fileName || doc.filename || doc.filePath?.split(/[\\/]/).pop();
-        setFileUrl(`http://localhost:5000/uploads/${name}`);
+        setFileUrl(`${API_BASE_URL}/uploads/${name}`);
       })
       .catch(() => showToast("Could not load document.", "error"));
   }, [fileId]);
@@ -382,6 +382,23 @@ export default function PDFSignatureEditor() {
   const [saving,  setSaving]  = useState(false);
   const [toast,   setToast]   = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [signerEmail, setSignerEmail] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleSendForSigning = async () => {
+    if (!signerEmail) return alert("Enter signer's email");
+    try {
+      setSending(true);
+      await API.post(`/signatures/send/${fileId}`, { signerEmail });
+      showToast(`Signing link sent to ${signerEmail} ✓`);
+      setSignerEmail("");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to send link", "error");
+    } finally {
+      setSending(false);
+    }
+  };
 
   // ── fetch saved signatures on mount ─────────────────────────────────────────
   useEffect(() => {
@@ -704,6 +721,56 @@ export default function PDFSignatureEditor() {
             </div>
           ))}
         </div>
+
+        {/* Send for Signing Form */}
+        <div>
+          <p style={{
+            margin:     "0 0 8px",
+            fontSize:   11,
+            fontWeight: 700,
+            color:      C.muted,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+          }}>
+            Send for Signing
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <input
+              type="email"
+              placeholder="Signer's email address"
+              value={signerEmail}
+              onChange={(e) => setSignerEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                fontSize: 13,
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={handleSendForSigning}
+              disabled={sending}
+              style={{
+                width: "100%",
+                padding: "9px",
+                borderRadius: 6,
+                border: "none",
+                background: sending ? "#D1D5DB" : C.blue,
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: sending ? "not-allowed" : "pointer",
+              }}
+            >
+              {sending ? "Sending..." : "📨 Send for Signing"}
+            </button>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ borderTop: `1px solid ${C.border}` }} />
 
         {/* Save button */}
         <button

@@ -17,6 +17,9 @@ const {
   signatureFieldPlacedEmail,
   documentSignedEmail,
 } = require("../utils/EmailTemplates");
+const { v4: uuidv4 } = require("uuid");
+const SigningToken = require("../models/SigningToken");
+const { sendSigningLink } = require("../utils/mailer");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
@@ -318,6 +321,171 @@ router.get("/download/:filename", protect, (req, res) => {
   } catch (err) {
     console.error("Download error:", err);
     res.status(500).json({ message: "Server error during download" });
+  }
+});
+
+// POST /api/signatures/send/:docId
+// Owner sends a signing request to an email
+router.post("/send/:docId", protect, async (req, res) => {
+  try {
+    const { signerEmail } = req.body;
+    if (!signerEmail)
+      return res.status(400).json({ message: "Signer email is required" });
+
+    // Find the document
+    const doc = await Document.findById(req.params.docId);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    // Only the document owner can send signing requests
+    const ownerId = doc.uploadedBy || doc.userId;
+    if (!ownerId || ownerId.toString() !== req.user._id.toString())
+      return res.status(403).json({ message: "Not authorized" });
+
+    // Update document status to waiting
+    doc.status = "waiting";
+    await doc.save();
+
+    // Generate a unique token
+    const token = uuidv4(); // e.g. "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+    // Set expiry to 48 hours from now
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+    // Save token to DB
+    await SigningToken.create({
+      token,
+      documentId: doc._id,
+      signerEmail,
+      expiresAt,
+    });
+
+    // Build the public signing URL (no auth required on this route)
+    const signingUrl = `${process.env.CLIENT_URL || CLIENT_URL}/sign/${token}`;
+
+    // Send the email
+    await sendSigningLink(signerEmail, signingUrl, doc.originalName || doc.filename || doc.fileName);
+
+    res.status(200).json({ message: `Signing link sent to ${signerEmail}` });
+  } catch (err) {
+    console.error("Send signing link error:", err);
+    res.status(500).json({ message: "Failed to send signing link", error: err.message });
+  }
+});
+
+// GET /api/signatures/sign/:token
+// Validate public signing link and return document details
+router.get("/sign/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const signingToken = await SigningToken.findOne({ token });
+
+    if (!signingToken) {
+      return res.status(404).json({ message: "Invalid signing link" });
+    }
+
+    if (signingToken.used) {
+      return res.status(400).json({ message: "This signing link has already been used" });
+    }
+
+    if (signingToken.expiresAt < new Date()) {
+      return res.status(400).json({ message: "This signing link has expired" });
+    }
+
+    const doc = await Document.findById(signingToken.documentId);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    const placeholders = await Signature.find({ fileId: doc._id }).populate("signer", "name email");
+
+    res.json({
+      success: true,
+      documentId: doc._id,
+      filename: doc.originalName || doc.filename,
+      fileName: doc.fileName || doc.filename,
+      fileUrl: `/uploads/${doc.fileName}`,
+      signerEmail: signingToken.signerEmail,
+      placeholders,
+    });
+  } catch (err) {
+    console.error("Verify signing token error:", err);
+    res.status(500).json({ message: "Verification failed", error: err.message });
+  }
+});
+
+// POST /api/signatures/sign/:token
+// Signer submits a signature using a public token
+router.post("/sign/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { signatureImage, x, y, page } = req.body;
+
+    if (!signatureImage || x == null || y == null || !page) {
+      return res.status(400).json({ message: "signatureImage, x, y, and page are required" });
+    }
+
+    const signingToken = await SigningToken.findOne({ token });
+    if (!signingToken) {
+      return res.status(404).json({ message: "Invalid signing link" });
+    }
+
+    if (signingToken.used) {
+      return res.status(400).json({ message: "This signing link has already been used" });
+    }
+
+    if (signingToken.expiresAt < new Date()) {
+      return res.status(400).json({ message: "This signing link has expired" });
+    }
+
+    const doc = await Document.findById(signingToken.documentId);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    let sig;
+    if (req.body.signatureId) {
+      // Update the existing placeholder signature record
+      sig = await Signature.findById(req.body.signatureId);
+      if (!sig) {
+        return res.status(404).json({ message: "Signature field placeholder not found" });
+      }
+      sig.status = "signed";
+      sig.signatureImage = signatureImage;
+      sig.signedAt = new Date();
+      await sig.save();
+    } else {
+      // Fallback: Create a new signature entry in the database
+      sig = await Signature.create({
+        fileId: doc._id,
+        x,
+        y,
+        page,
+        status: "signed",
+        signedAt: new Date(),
+        signatureImage,
+        signerEmail: signingToken.signerEmail,
+      });
+    }
+
+    // Mark token as used
+    signingToken.used = true;
+    await signingToken.save();
+
+    // Check if we should update document status to 'signed'
+    const allSigs = await Signature.find({ fileId: doc._id });
+    const allSigned = allSigs.every(s => s.status === "signed");
+    if (allSigned) {
+      doc.status = "signed";
+      await doc.save();
+    } else {
+      doc.status = "waiting"; // waiting for other signatures
+      await doc.save();
+    }
+
+    res.status(200).json({ success: true, message: "Signature submitted successfully", signature: sig });
+  } catch (err) {
+    console.error("Submit signature error:", err);
+    res.status(500).json({ message: "Failed to submit signature", error: err.message });
   }
 });
 

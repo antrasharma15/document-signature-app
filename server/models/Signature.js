@@ -10,7 +10,10 @@ const signatureSchema = new mongoose.Schema(
     signer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+    },
+    signerEmail: {
+      type: String,
     },
     // Coordinates stored as percentages (0–100) so they scale across screen sizes
     x: { type: Number, required: true }, // % from left of page

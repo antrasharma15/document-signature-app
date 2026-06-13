@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import API from "../api/axios";
+import API, { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import SignaturePlacer from "../components/SignaturePlacer";
 import {
@@ -107,6 +107,23 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [activeDoc, setActiveDoc] = useState(null);
+  const [signerEmail, setSignerEmail] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleSendForSigning = async (docId) => {
+    if (!signerEmail) return alert("Enter signer's email");
+    try {
+      setSending(true);
+      await API.post(`/signatures/send/${docId}`, { signerEmail });
+      alert(`✅ Signing link sent to ${signerEmail}`);
+      setSignerEmail("");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to send link");
+    } finally {
+      setSending(false);
+    }
+  };
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -722,9 +739,60 @@ export default function Dashboard() {
 
             {/* Modal Body */}
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 24px" }}>
+              {/* Send for Signing Form */}
+              <div style={{
+                marginBottom: 20,
+                padding: 16,
+                background: "#F9FAFB",
+                border: `1px solid ${S.border}`,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 12
+              }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: S.text, display: "block", marginBottom: 4 }}>
+                    Send document for signing
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="Signer's email address"
+                    value={signerEmail}
+                    onChange={(e) => setSignerEmail(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      border: `1px solid ${S.border}`,
+                      borderRadius: 6,
+                      fontSize: 13,
+                      outline: "none",
+                      background: "#fff"
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={() => handleSendForSigning(activeDoc._id)}
+                  disabled={sending}
+                  style={{
+                    alignSelf: "flex-end",
+                    padding: "9px 16px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: sending ? "#D1D5DB" : S.accent,
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: sending ? "not-allowed" : "pointer",
+                    boxShadow: sending ? "none" : "0 2px 6px rgba(61,107,94,0.25)"
+                  }}
+                >
+                  {sending ? "Sending..." : "📨 Send for Signing"}
+                </button>
+              </div>
+
               <SignaturePlacer
                 fileId={activeDoc._id}
-                fileUrl={`http://localhost:5000/uploads/${activeDoc.fileName}`}
+                fileUrl={`${API_BASE_URL}/uploads/${activeDoc.fileName}`}
               />
             </div>
           </div>
