@@ -20,6 +20,8 @@ const {
 const { v4: uuidv4 } = require("uuid");
 const SigningToken = require("../models/SigningToken");
 const { sendSigningLink } = require("../utils/mailer");
+const { logAudit } = require("../utils/audit");
+const AuditLog = require("../models/AuditLog");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
@@ -117,6 +119,15 @@ const handleSign = async (req, res) => {
     sig.signedAt = new Date();
     sig.signatureImage = req.body.signatureImage; // Save signature image
     await sig.save();
+
+    // Audit the signing event
+    await logAudit({
+      documentId: sig.fileId._id || sig.fileId,
+      action: "DOCUMENT_SIGNED",
+      performedBy: req.user.email,
+      ipAddress: req.ip,
+      metadata: { page: sig.page, x: sig.x, y: sig.y },
+    });
 
     // Fetch document owner and update document status if all signatures are signed
     const document = await Document.findById(sig.fileId).populate("uploadedBy", "name email");
@@ -292,7 +303,7 @@ router.post("/finalize/:docId", protect, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/signatures/download/:filename
 // ─────────────────────────────────────────────────────────────────────────────
-router.get("/download/:filename", protect, (req, res) => {
+router.get("/download/:filename", protect, async (req, res) => {
   try {
     const filename = req.params.filename;
     
@@ -318,6 +329,23 @@ router.get("/download/:filename", protect, (req, res) => {
     // Stream the file to the response
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
+
+    // Audit download action
+    try {
+      const coreFileName = filename.startsWith("signed_") ? filename.replace("signed_", "") : filename;
+      const doc = await Document.findOne({ $or: [{ fileName: coreFileName }, { filename: coreFileName }] });
+      if (doc) {
+        await logAudit({
+          documentId: doc._id,
+          action: "SIGNED_PDF_DOWNLOADED",
+          performedBy: req.user.email,
+          ipAddress: req.ip,
+          metadata: { signedFilename: filename },
+        });
+      }
+    } catch (auditErr) {
+      console.error("Failed to log download audit:", auditErr.message);
+    }
   } catch (err) {
     console.error("Download error:", err);
     res.status(500).json({ message: "Server error during download" });
@@ -365,6 +393,14 @@ router.post("/send/:docId", protect, async (req, res) => {
     // Send the email
     await sendSigningLink(signerEmail, signingUrl, doc.originalName || doc.filename || doc.fileName);
 
+    await logAudit({
+      documentId: doc._id,
+      action: "SIGNING_LINK_SENT",
+      performedBy: req.user.email,
+      ipAddress: req.ip,
+      metadata: { signerEmail },
+    });
+
     res.status(200).json({ message: `Signing link sent to ${signerEmail}` });
   } catch (err) {
     console.error("Send signing link error:", err);
@@ -396,6 +432,14 @@ router.get("/sign/:token", async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    await logAudit({
+      documentId: signingToken.documentId._id || signingToken.documentId,
+      action: "DOCUMENT_VIEWED",
+      performedBy: signingToken.signerEmail,
+      ipAddress: req.ip,
+      metadata: { token: req.params.token },
+    });
+
     const placeholders = await Signature.find({ fileId: doc._id }).populate("signer", "name email");
 
     res.json({
@@ -420,8 +464,12 @@ router.post("/sign/:token", async (req, res) => {
     const { token } = req.params;
     const { signatureImage, x, y, page } = req.body;
 
-    if (!signatureImage || x == null || y == null || !page) {
-      return res.status(400).json({ message: "signatureImage, x, y, and page are required" });
+    if (!signatureImage) {
+      return res.status(400).json({ message: "signatureImage is required" });
+    }
+
+    if (!req.body.signatureId && (x == null || y == null || !page)) {
+      return res.status(400).json({ message: "signatureImage, x, y, and page are required for new placements" });
     }
 
     const signingToken = await SigningToken.findOne({ token });
@@ -471,6 +519,14 @@ router.post("/sign/:token", async (req, res) => {
     signingToken.used = true;
     await signingToken.save();
 
+    await logAudit({
+      documentId: signingToken.documentId,
+      action: "DOCUMENT_SIGNED",
+      performedBy: signingToken.signerEmail,
+      ipAddress: req.ip,
+      metadata: { page: sig.page, x: sig.x, y: sig.y },
+    });
+
     // Check if we should update document status to 'signed'
     const allSigs = await Signature.find({ fileId: doc._id });
     const allSigned = allSigs.every(s => s.status === "signed");
@@ -486,6 +542,26 @@ router.post("/sign/:token", async (req, res) => {
   } catch (err) {
     console.error("Submit signature error:", err);
     res.status(500).json({ message: "Failed to submit signature", error: err.message });
+  }
+});
+
+// GET /api/audit/:docId
+// Returns full audit trail for a document — owner only
+router.get("/:docId", protect, async (req, res) => {
+  try {
+    const doc = await Document.findById(req.params.docId);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    // Only the document owner can view the audit trail
+    if (doc.userId.toString() !== req.user._id.toString())
+      return res.status(403).json({ message: "Not authorized" });
+
+    const logs = await AuditLog.find({ documentId: req.params.docId })
+      .sort({ createdAt: 1 }); // oldest first — reads like a timeline
+
+    res.status(200).json({ logs });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch audit trail", error: err.message });
   }
 });
 

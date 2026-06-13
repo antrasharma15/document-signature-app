@@ -15,6 +15,7 @@ const User     = require("../models/User");
 const protect  = require("../middleware/authMiddleware");
 const sendEmail = require("../utils/SendEmail");
 const { documentUploadedEmail } = require("../utils/EmailTemplates");
+const { logAudit } = require("../utils/audit");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
@@ -57,6 +58,14 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
       uploadedBy:   req.user._id,
       fileSize:     req.file.size,
       signerEmail:  signerEmail || null,
+    });
+
+    await logAudit({
+      documentId: document._id,
+      action: "DOCUMENT_UPLOADED",
+      performedBy: req.user.email,
+      ipAddress: req.ip,
+      metadata: { filename: document.filename },
     });
 
     // ── Send email to signer if provided ─────────────────────────────────────

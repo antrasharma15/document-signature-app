@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import API, { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import SignaturePlacer from "../components/SignaturePlacer";
+import AuditTrail from "../components/AuditTrail";
 import {
   LayoutDashboard, FileText, Send, Clock, ShieldCheck,
   Settings, Upload, Search, Bell, CheckCircle,
@@ -794,6 +795,8 @@ export default function Dashboard() {
                 fileId={activeDoc._id}
                 fileUrl={`${API_BASE_URL}/uploads/${activeDoc.fileName}`}
               />
+
+              <AuditTrail docId={activeDoc._id} />
             </div>
           </div>
         </div>

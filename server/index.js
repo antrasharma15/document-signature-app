@@ -5,6 +5,7 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(cors({
   origin: '*',
   exposedHeaders: ['Accept-Ranges', 'Content-Encoding', 'Content-Length', 'Content-Range']
@@ -26,10 +27,12 @@ app.use('/uploads', express.static(uploadsDir));
 const authRoutes = require('./routes/auth');
 const docRoutes = require('./routes/docs');        // ✅ Add this
 const signatureRoutes = require('./routes/signatures');
+const auditRoutes = require('./routes/audit');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/docs', docRoutes);                   // ✅ Add this
 app.use('/api/signatures', signatureRoutes);
+app.use('/api/audit', auditRoutes);
 
 app.get('/', (req, res) => res.send('Server is running ✅'));
 

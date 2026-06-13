@@ -22,6 +22,7 @@ import { useParams } from "react-router-dom";
 import API, { API_BASE_URL } from "../api/axios";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
+import AuditTrail from "../components/AuditTrail";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -787,6 +788,7 @@ export default function PDFSignatureEditor() {
             cursor:       saving || unsavedCount === 0 ? "not-allowed" : "pointer",
             boxShadow:    unsavedCount > 0 ? "0 2px 10px rgba(37,99,235,0.28)" : "none",
             transition:   "background 0.2s",
+            marginBottom: 10,
           }}
         >
           {saving
@@ -795,6 +797,8 @@ export default function PDFSignatureEditor() {
               ? `Save ${unsavedCount} Field${unsavedCount > 1 ? "s" : ""}`
               : "All Saved ✓"}
         </button>
+
+        <AuditTrail docId={fileId} />
       </aside>
 
       {/* ── Main Canvas ── */}

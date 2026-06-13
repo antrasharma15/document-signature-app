@@ -4,7 +4,8 @@ const documentSchema = new mongoose.Schema({
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    alias: 'userId'
   },
   originalName: {
     type: String,
