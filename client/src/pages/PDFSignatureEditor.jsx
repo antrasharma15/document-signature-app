@@ -347,8 +347,9 @@ function Toast({ msg, type }) {
 
 // ─── Main Editor ──────────────────────────────────────────────────────────────
 
-export default function PDFSignatureEditor() {
-  const { id: fileId } = useParams();
+export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
+  const { id: routeFileId } = useParams();
+  const fileId = propFileId || routeFileId;
   const [fileUrl, setFileUrl] = useState(null);
 
   // PDF state
@@ -385,6 +386,54 @@ export default function PDFSignatureEditor() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [signerEmail, setSignerEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+
+  const handleDeleteDoc = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this document?")) return;
+    try {
+      await API.delete(`/docs/${fileId}`);
+      showToast("Document deleted successfully ✓");
+      if (onClose) {
+        setTimeout(() => onClose(true), 1000);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to delete document", "error");
+    }
+  };
+
+  const handleFinalize = async () => {
+    setFinalizing(true);
+    try {
+      showToast("Finalizing document...", "success");
+      const res = await API.post(`/signatures/finalize/${fileId}`);
+      const { downloadUrl, signedFile } = res.data;
+
+      const requestUrl = downloadUrl.startsWith("/api")
+        ? downloadUrl.replace("/api", "")
+        : downloadUrl;
+
+      const fileRes = await API.get(requestUrl, {
+        responseType: "blob"
+      });
+
+      const blobUrl = window.URL.createObjectURL(new Blob([fileRes.data]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = signedFile || "signed_document.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
+      showToast("Signed PDF downloaded! ✓");
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.message || "Failed to finalize document", "error");
+    } finally {
+      setFinalizing(false);
+    }
+  };
 
   const handleSendForSigning = async () => {
     if (!signerEmail) return alert("Enter signer's email");
@@ -602,7 +651,7 @@ export default function PDFSignatureEditor() {
     <div style={{
       display:    "flex",
       gap:        0,
-      height:     "calc(100vh - 64px)",
+      height:     propFileId ? "100%" : "calc(100vh - 64px)",
       fontFamily: "'Inter', system-ui, sans-serif",
       background: C.canvas,
       overflow:   "hidden",
@@ -796,6 +845,54 @@ export default function PDFSignatureEditor() {
             : unsavedCount > 0
               ? `Save ${unsavedCount} Field${unsavedCount > 1 ? "s" : ""}`
               : "All Saved ✓"}
+        </button>
+
+        {fields.some(f => f.status === "signed") && (
+          <button
+            onClick={handleFinalize}
+            disabled={finalizing}
+            style={{
+              padding:      "11px",
+              borderRadius: 8,
+              border:       "none",
+              background:   finalizing ? "#D1D5DB" : "#16A34A",
+              color:        "#fff",
+              fontWeight:   700,
+              fontSize:     14,
+              cursor:       finalizing ? "not-allowed" : "pointer",
+              boxShadow:    "0 2px 8px rgba(22,163,74,0.30)",
+              transition:   "background 0.2s",
+              marginBottom: 10,
+            }}
+          >
+            {finalizing ? "Finalizing…" : "✅ Finalize & Download"}
+          </button>
+        )}
+
+        <button
+          onClick={handleDeleteDoc}
+          style={{
+            padding:      "11px",
+            borderRadius: 8,
+            border:       `1px solid ${C.red}`,
+            background:   "transparent",
+            color:        C.red,
+            fontWeight:   700,
+            fontSize:     14,
+            cursor:       "pointer",
+            transition:   "all 0.2s",
+            marginBottom: 10,
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = C.red;
+            e.currentTarget.style.color = "#fff";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = C.red;
+          }}
+        >
+          🗑️ Delete Document
         </button>
 
         <AuditTrail docId={fileId} />

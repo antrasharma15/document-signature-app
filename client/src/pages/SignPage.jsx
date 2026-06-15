@@ -152,7 +152,7 @@ export default function SignPage() {
             ✍️
           </div>
           <div>
-            <h1 className="font-bold text-base tracking-tight text-white">SignVault</h1>
+            <h1 className="font-bold text-base tracking-tight text-white">EASYsign</h1>
             <p className="text-slate-500 text-xs font-medium -mt-1">Secure Sign Portal</p>
           </div>
         </div>

@@ -129,4 +129,39 @@ router.get("/:id", protect, async (req, res) => {
   }
 });
 
+router.delete("/:id", protect, async (req, res) => {
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    if (doc.uploadedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Forbidden: You do not own this document" });
+    }
+
+    const fs = require("fs");
+    if (doc.filePath && fs.existsSync(doc.filePath)) {
+      try {
+        fs.unlinkSync(doc.filePath);
+      } catch (err) {
+        console.error("Failed to delete physical file:", err);
+      }
+    }
+
+    await Document.findByIdAndDelete(req.params.id);
+
+    await logAudit({
+      documentId: doc._id,
+      action: "DOCUMENT_DELETED",
+      performedBy: req.user.email,
+      ipAddress: req.ip,
+      metadata: { filename: doc.fileName || doc.originalName },
+    });
+
+    res.json({ success: true, message: "Document deleted successfully" });
+  } catch (err) {
+    console.error("Delete document error:", err);
+    res.status(500).json({ message: "Server error deleting document" });
+  }
+});
+
 module.exports = router;

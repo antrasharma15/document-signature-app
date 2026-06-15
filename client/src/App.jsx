@@ -1,12 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
-import PDFSignatureEditor from './pages/PDFSignatureEditor';
 import SignPage from './pages/SignPage';
+import Settings from './pages/Settings';
+
+const EditorRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/dashboard?docId=${id}`} replace />;
+};
 
 function App() {
   return (
@@ -28,10 +33,18 @@ function App() {
             }
           />
           <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/editor/:id"
             element={
               <ProtectedRoute>
-                <PDFSignatureEditor />
+                <EditorRedirect />
               </ProtectedRoute>
             }
           />

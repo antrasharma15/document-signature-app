@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import API, { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-import SignaturePlacer from "../components/SignaturePlacer";
-import AuditTrail from "../components/AuditTrail";
+import Sidebar from "../components/Sidebar";
+import PDFSignatureEditor from "./PDFSignatureEditor";
 import StatusBadge from "../components/StatusBadge";
+import FilterTabs from "../components/FilterTabs";
+import DocumentCard from "../components/DocumentCard";
+import EmptyState from "../components/EmptyState";
 import {
   LayoutDashboard, FileText, Send, Clock, ShieldCheck,
   Settings, Upload, Search, Bell, CheckCircle,
@@ -14,7 +17,7 @@ import {
 
 /* ─── Design tokens ─────────────────────────────────────────────── */
 const S = {
-  bg:          "#ECEDF2",   // cool lavender-grey, NOT warm cream
+  bg:          "#BAC095",   // mossy hollow background
   sidebar:     "#1C1F2E",   // ink blue-black, richer than generic dark
   card:        "#FFFFFF",
   accent:      "#3D6B5E",   // verdigris — aged copper seal
@@ -31,14 +34,7 @@ const S = {
   },
 };
 
-const NAV = [
-  { Icon: LayoutDashboard, label:"Dashboard",          id:"dashboard"                },
-  { Icon: FileText,        label:"My Documents",       id:"documents"                },
-  { Icon: Send,            label:"Send for Sign",      id:"send"                     },
-  { Icon: Inbox,           label:"Waiting for Others", id:"waiting"                  },
-  { Icon: ShieldCheck,     label:"Audit Trail",        id:"audit"                    },
-  { Icon: Settings,        label:"Settings",           id:"settings"                 },
-];
+// Sidebar NAV items have been refactored into a shared Sidebar component.
 
 const FILTERS = [
   { id:"all",      label:"All"      },
@@ -103,7 +99,6 @@ function Badge({ status }) {
 
 /* ─── Main Dashboard ────────────────────────────────────────────── */
 export default function Dashboard() {
-  const [nav,    setNav   ] = useState("dashboard");
   const [filter, setFilter] = useState("all");
   const [drag,   setDrag  ] = useState(false);
   const [documents, setDocuments] = useState([]);
@@ -113,6 +108,7 @@ export default function Dashboard() {
   const [activeDoc, setActiveDoc] = useState(null);
   const [signerEmail, setSignerEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleSendForSigning = async (docId) => {
     if (!signerEmail) return alert("Enter signer's email");
@@ -150,6 +146,18 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDocuments();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const docId = params.get("docId");
+    if (docId && documents.length > 0) {
+      const doc = documents.find(d => d._id === docId);
+      if (doc) {
+        setActiveDoc(doc);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [documents]);
 
   const handleLogout = () => {
     logout();
@@ -201,14 +209,50 @@ export default function Dashboard() {
     }
   };
 
-  const docs = filter === "all" ? documents : documents.filter(d => d.status === filter);
+  // Compute counts for each filter tab
+  const counts = useMemo(() => {
+    const c = { all: documents.length, draft: 0, pending: 0, signed: 0, rejected: 0, waiting: 0 };
+    documents.forEach((doc) => {
+      if (doc.status === "draft") c.draft++;
+      else if (doc.status === "signed") c.signed++;
+      else if (doc.status === "rejected") c.rejected++;
+      else if (doc.status === "pending" || doc.status === "waiting") {
+        if (doc.signerEmail && doc.signerEmail !== user?.email) {
+          c.waiting++;
+        } else {
+          c.pending++;
+        }
+      }
+    });
+    return c;
+  }, [documents, user]);
+
+  // Filter documents based on active tab and search query
+  const docs = useMemo(() => {
+    let list = documents;
+    if (filter !== "all") {
+      if (filter === "waiting") {
+        list = documents.filter((doc) => (doc.status === "pending" || doc.status === "waiting") && doc.signerEmail && doc.signerEmail !== user?.email);
+      } else if (filter === "pending") {
+        list = documents.filter((doc) => (doc.status === "pending" || doc.status === "waiting") && (!doc.signerEmail || doc.signerEmail === user?.email));
+      } else {
+        list = documents.filter((doc) => doc.status === filter);
+      }
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((doc) =>
+        (doc.originalName || doc.filename || "").toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [documents, filter, searchQuery, user]);
 
   // Dynamic statistics calculations
-  const pendingCount = documents.filter(d => d.status === "pending" || d.status === "waiting").length;
-  const signedCount = documents.filter(d => d.status === "signed").length;
-  const rejectedCount = documents.filter(d => d.status === "rejected").length;
-  const totalCount = documents.length;
-  const draftCount = documents.filter(d => d.status === "draft").length;
+  const pendingCount = counts.pending;
+  const signedCount = counts.signed;
+  const rejectedCount = counts.rejected;
+  const totalCount = counts.all;
 
   const statsData = [
     { label:"Pending Signature",  value:pendingCount,  bg:S.status.pending.bg,  color:S.status.pending.color,  Icon:Clock        },
@@ -257,81 +301,7 @@ export default function Dashboard() {
                   background:S.bg, fontSize:14 }}>
 
       {/* ════════════ SIDEBAR ════════════ */}
-      <aside style={{ width:240, minWidth:240, background:S.sidebar,
-                      display:"flex", flexDirection:"column", height:"100vh" }}>
-
-        {/* Logo */}
-        <div style={{ padding:"22px 18px 16px", borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:36, height:36, borderRadius:10, background:S.accent,
-                          display:"flex", alignItems:"center", justifyContent:"center" }}>
-              <Pen size={16} color="#fff" />
-            </div>
-            <div>
-              <div style={{ color:"#fff", fontWeight:700, fontSize:16, letterSpacing:"-0.01em" }}>
-                SignVault
-              </div>
-              <div style={{ color:"#404968", fontSize:10, fontWeight:500, marginTop:1 }}>
-                Document Platform
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Nav items */}
-        <nav style={{ flex:1, padding:"14px 10px", overflowY:"auto" }}>
-          <p style={{ margin:"0 0 8px", padding:"0 10px", fontSize:10, fontWeight:700,
-                      color:"#353D58", letterSpacing:"0.08em", textTransform:"uppercase" }}>
-            Menu
-          </p>
-          {NAV.map(({ Icon, label, id }) => {
-            const active = nav === id;
-            const badgeValue = id === "waiting" ? pendingCount : undefined;
-            return (
-              <button key={id} onClick={() => setNav(id)} style={{
-                width:"100%", border:"none", cursor:"pointer", textAlign:"left",
-                display:"flex", alignItems:"center", gap:10,
-                padding:"9px 12px", borderRadius:8, marginBottom:2,
-                background: active ? S.accent : "transparent",
-                color:      active ? "#fff"    : "#8B94B2",
-                fontSize:13, fontWeight: active ? 600 : 400,
-                transition:"all 0.15s ease",
-              }}>
-                <Icon size={16} />
-                <span style={{ flex:1 }}>{label}</span>
-                {badgeValue !== undefined && badgeValue > 0 && (
-                  <span style={{ background: active ? "rgba(255,255,255,0.2)" : "#242B40",
-                                 color:      active ? "#fff" : "#6B758E",
-                                 fontSize:10, fontWeight:700, padding:"1px 7px", borderRadius:20 }}>
-                    {badgeValue}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User card */}
-        <div style={{ padding:"12px 10px", borderTop:"1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ background:"rgba(255,255,255,0.04)", borderRadius:10,
-                        padding:"10px 12px", display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:32, height:32, borderRadius:"50%", background:S.accent,
-                          flexShrink:0, display:"flex", alignItems:"center",
-                          justifyContent:"center", color:"#fff", fontWeight:700, fontSize:13 }}>
-              {firstLetter}
-            </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ color:"#DADEE8", fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                {user?.name || "User"}
-              </div>
-              <div style={{ color:"#404968", fontSize:11, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                {user?.email || "Email"}
-              </div>
-            </div>
-            <LogOut size={14} color="#404968" style={{ cursor:"pointer", flexShrink:0 }} onClick={handleLogout} />
-          </div>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* ════════════ MAIN CONTENT ════════════ */}
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
@@ -344,21 +314,17 @@ export default function Dashboard() {
                         background:S.bg, borderRadius:8, padding:"7px 12px",
                         flex:1, maxWidth:300 }}>
             <Search size={14} color={S.muted} />
-            <input placeholder="Search documents…" style={{
-              border:"none", background:"transparent", outline:"none",
-              fontSize:13, color:S.text, width:"100%",
-            }} />
+            <input
+              placeholder="Search documents…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                border:"none", background:"transparent", outline:"none",
+                fontSize:13, color:S.text, width:"100%",
+              }}
+            />
           </div>
           <div style={{ flex:1 }} />
-
-          {/* Bell */}
-          <button style={{ position:"relative", width:36, height:36, borderRadius:8,
-                           background:S.bg, border:"none", cursor:"pointer",
-                           display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <Bell size={16} color={S.muted} />
-            <span style={{ position:"absolute", top:8, right:8, width:7, height:7,
-                           borderRadius:"50%", background:"#C97C2A", border:"1.5px solid #fff" }} />
-          </button>
 
           {/* User chip */}
           <div style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer",
@@ -390,7 +356,7 @@ export default function Dashboard() {
             <div>
               <h1 style={{ margin:0, fontSize:21, fontWeight:700, color:S.text,
                            letterSpacing:"-0.02em" }}>
-                Good morning, {user?.name || "User"} 👋
+                Good morning, {user?.name || "User"} 
               </h1>
               <p style={{ margin:"4px 0 0", fontSize:13, color:S.muted }}>
                 You have{" "}
@@ -399,13 +365,13 @@ export default function Dashboard() {
               </p>
             </div>
             <div style={{ display:"flex", gap:10, flexShrink:0 }}>
-              <button style={{
+              {/* <button style={{
                 display:"flex", alignItems:"center", gap:6, padding:"8px 15px",
                 borderRadius:8, border:`1.5px solid ${S.border}`,
                 background:S.card, color:S.text, fontSize:13, fontWeight:500, cursor:"pointer",
               }}>
                 <Send size={13} /> Send for Signature
-              </button>
+              </button> */}
               <button onClick={triggerFileInput} style={{
                 display:"flex", alignItems:"center", gap:6, padding:"8px 18px",
                 borderRadius:8, border:"none", background:S.accent, color:"#fff",
@@ -446,41 +412,25 @@ export default function Dashboard() {
                             display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
                   <h2 style={{ margin:0, fontSize:14, fontWeight:700, color:S.text }}>
-                    Recent Documents
+                     Your Recent Documents
                   </h2>
                   <p style={{ margin:"2px 0 0", fontSize:11, color:S.muted }}>
                     {documents.length} documents in your vault
                   </p>
                 </div>
-                <button style={{ display:"flex", alignItems:"center", gap:4, fontSize:12,
+                {/* <button style={{ display:"flex", alignItems:"center", gap:4, fontSize:12,
                                  color:S.accent, fontWeight:600, background:"none",
                                  border:"none", cursor:"pointer" }}>
                   View all <ArrowUpRight size={12} />
-                </button>
+                </button> */}
               </div>
 
               {/* Filter tabs */}
-              <div style={{ padding:"10px 20px 0", display:"flex", gap:2,
-                            borderBottom:`1px solid ${S.border}` }}>
-                {FILTERS.map(({ id, label }) => {
-                  const active = filter === id;
-                  return (
-                    <button key={id} onClick={() => setFilter(id)} style={{
-                      padding:"7px 12px", border:"none", cursor:"pointer", fontSize:12,
-                      fontWeight: active ? 600 : 400,
-                      background: active ? S.accentLight : "transparent",
-                      color:      active ? S.accent      : S.muted,
-                      borderRadius:"6px 6px 0 0",
-                      borderBottom: active ? `2px solid ${S.accent}` : "2px solid transparent",
-                      marginBottom:-1,
-                    }}>
-                      {label}
-                    </button>
-                  );
-                })}
+              <div style={{ padding:"16px 20px 8px", borderBottom:`1px solid ${S.border}` }}>
+                <FilterTabs activeFilter={filter} onChange={setFilter} counts={counts} />
               </div>
 
-              {/* Table / Loader / Error / Empty state */}
+              {/* Document grid */}
               {loading ? (
                 <div style={{ padding:"40px", textAlign:"center", color:S.muted }}>
                   Loading documents...
@@ -490,117 +440,17 @@ export default function Dashboard() {
                   {error}
                 </div>
               ) : docs.length === 0 ? (
-                <div style={{ padding:"40px", textAlign:"center", color:S.muted }}>
-                  No documents found. Upload a PDF to get started!
-                </div>
+                <EmptyState filter={filter} />
               ) : (
-                <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                  <thead>
-                    <tr style={{ background:"#FAFBFC" }}>
-                      {["Document","Status","Signers","Updated",""].map(h => (
-                        <th key={h} style={{
-                          padding:"10px 18px", textAlign:"left",
-                          fontSize:10, fontWeight:700, color:S.muted,
-                          letterSpacing:"0.05em", textTransform:"uppercase",
-                          borderBottom:`1px solid ${S.border}`,
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {docs.map((doc, i) => (
-                      <tr key={doc._id}
-                          style={{ borderBottom: i < docs.length - 1 ? `1px solid ${S.border}` : "none",
-                                   transition:"background 0.1s" }}
-                          onMouseEnter={e => e.currentTarget.style.background = "#FAFBFD"}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-
-                        {/* Name + size */}
-                        <td style={{ padding:"13px 18px" }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <div style={{ width:30, height:36, borderRadius:5,
-                                          background:S.accentLight, flexShrink:0,
-                                          display:"flex", alignItems:"center", justifyContent:"center" }}>
-                              <FileText size={14} color={S.accent} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize:13, fontWeight:500, color:S.text,
-                                            maxWidth:200, overflow:"hidden",
-                                            textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                                {doc.originalName}
-                              </div>
-                              <div style={{ fontSize:11, color:S.muted, marginTop:1 }}>
-                                {formatBytes(doc.fileSize)}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td style={{ padding:"13px 18px" }}>
-                          <StatusBadge status={doc.status} />
-                          {doc.status === "rejected" && doc.rejectionReason && (
-                            <div
-                              style={{
-                                fontSize: 10,
-                                color: "#A83620",
-                                marginTop: 4,
-                                fontStyle: "italic",
-                                maxWidth: 180,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap"
-                              }}
-                              title={doc.rejectionReason}
-                            >
-                              Reason: {doc.rejectionReason}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding:"13px 18px", fontSize:12, color:S.muted }}>
-                          {getSignersText(doc)}
-                        </td>
-                        <td style={{ padding:"13px 18px", fontSize:12, color:S.muted, whiteSpace:"nowrap" }}>
-                          {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-
-                        {/* Actions */}
-                        <td style={{ padding:"13px 18px" }}>
-                          <div style={{ display:"flex", gap:6 }}>
-                            <button
-                              onClick={() => navigate(`/editor/${doc._id}`)}
-                              style={{
-                                display:"flex", alignItems:"center", gap:4,
-                                padding:"4px 10px", borderRadius:6,
-                                border:`1px solid ${S.border}`, background:"transparent",
-                                cursor:"pointer", fontSize:11, color:S.text, fontWeight:500,
-                              }}
-                            >
-                              <Pen size={11} color={S.accent} /> Open Editor
-                            </button>
-                            <button
-                              onClick={() => setActiveDoc(doc)}
-                              style={{
-                                display:"flex", alignItems:"center", gap:4,
-                                padding:"4px 10px", borderRadius:6,
-                                border:`1px solid ${S.border}`, background:"transparent",
-                                cursor:"pointer", fontSize:11, color:S.text, fontWeight:500,
-                              }}
-                            >
-                              <Eye size={11} /> View
-                            </button>
-                            <button style={{
-                              padding:"4px 7px", borderRadius:6, border:`1px solid ${S.border}`,
-                              background:"transparent", cursor:"pointer",
-                              display:"flex", alignItems:"center",
-                            }}>
-                              <MoreHorizontal size={12} color={S.muted} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+                  {docs.map((doc) => (
+                    <DocumentCard
+                      key={doc._id}
+                      doc={doc}
+                      onSelect={() => setActiveDoc(doc)}
+                    />
+                  ))}
+                </div>
               )}
             </div>
 
@@ -671,7 +521,7 @@ export default function Dashboard() {
                 <div style={{ display:"flex", flexDirection:"column" }}>
                   {sortedActivities.length === 0 ? (
                     <div style={{ fontSize:12, color:S.muted, textAlign:"center", padding:"20px 0" }}>
-                      No recent activity
+                      No recent activity yet!
                     </div>
                   ) : (
                     sortedActivities.map((item, i) => (
@@ -704,7 +554,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ════════════ DOCUMENT VIEWER MODAL ════════════ */}
+      {/* ════════════ DOCUMENT WORKSPACE MODAL ════════════ */}
       {activeDoc && (
         <div style={{
           position: "fixed", inset: 0,
@@ -712,14 +562,13 @@ export default function Dashboard() {
           backdropFilter: "blur(6px)",
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 1000, padding: "20px",
-          animation: "fadeIn 0.2s ease",
         }}>
           <div style={{
             background: "#fff",
             borderRadius: 16,
             width: "100%",
-            maxWidth: 920,
-            maxHeight: "90vh",
+            maxWidth: 1200,
+            height: "90vh",
             display: "flex",
             flexDirection: "column",
             boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
@@ -736,90 +585,30 @@ export default function Dashboard() {
             }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: S.text }}>
-                  {activeDoc.originalName}
+                  Document Workspace — {activeDoc.originalName || activeDoc.filename}
                 </h3>
-                <p style={{ margin: "2px 0 0", fontSize: 11, color: S.muted }}>
-                  Size: {formatBytes(activeDoc.fileSize)}
-                </p>
               </div>
               <button
                 onClick={() => { setActiveDoc(null); fetchDocuments(); }}
                 style={{
                   border: "none",
                   background: "transparent",
-                  fontSize: 20,
+                  fontSize: 14,
+                  fontWeight: 600,
                   cursor: "pointer",
                   color: S.muted,
                   padding: 8,
-                  lineHeight: 1,
-                  transition: "color 0.15s"
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = "#1C1F2E"}
-                onMouseLeave={e => e.currentTarget.style.color = S.muted}
               >
-                ✕
+                ✕ Close Workspace
               </button>
             </div>
-
             {/* Modal Body */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "12px 24px" }}>
-              {/* Send for Signing Form */}
-              <div style={{
-                marginBottom: 20,
-                padding: 16,
-                background: "#F9FAFB",
-                border: `1px solid ${S.border}`,
-                borderRadius: 10,
-                display: "flex",
-                alignItems: "center",
-                gap: 12
-              }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: S.text, display: "block", marginBottom: 4 }}>
-                    Send document for signing
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="Signer's email address"
-                    value={signerEmail}
-                    onChange={(e) => setSignerEmail(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      border: `1px solid ${S.border}`,
-                      borderRadius: 6,
-                      fontSize: 13,
-                      outline: "none",
-                      background: "#fff"
-                    }}
-                  />
-                </div>
-                <button
-                  onClick={() => handleSendForSigning(activeDoc._id)}
-                  disabled={sending}
-                  style={{
-                    alignSelf: "flex-end",
-                    padding: "9px 16px",
-                    borderRadius: 6,
-                    border: "none",
-                    background: sending ? "#D1D5DB" : S.accent,
-                    color: "#fff",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: sending ? "not-allowed" : "pointer",
-                    boxShadow: sending ? "none" : "0 2px 6px rgba(61,107,94,0.25)"
-                  }}
-                >
-                  {sending ? "Sending..." : "📨 Send for Signing"}
-                </button>
-              </div>
-
-              <SignaturePlacer
+            <div style={{ flex: 1, overflow: "hidden" }}>
+              <PDFSignatureEditor
                 fileId={activeDoc._id}
-                fileUrl={`${API_BASE_URL}/uploads/${activeDoc.fileName}`}
+                onClose={() => { setActiveDoc(null); fetchDocuments(); }}
               />
-
-              <AuditTrail docId={activeDoc._id} />
             </div>
           </div>
         </div>
