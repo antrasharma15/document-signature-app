@@ -369,8 +369,9 @@ router.post("/send/:docId", protect, async (req, res) => {
     if (!ownerId || ownerId.toString() !== req.user._id.toString())
       return res.status(403).json({ message: "Not authorized" });
 
-    // Update document status to waiting
-    doc.status = "waiting";
+    // Update document status to pending
+    doc.status = "pending";
+    doc.rejectionReason = null; // Reset rejection reason on resend
     await doc.save();
 
     // Generate a unique token
@@ -527,21 +528,61 @@ router.post("/sign/:token", async (req, res) => {
       metadata: { page: sig.page, x: sig.x, y: sig.y },
     });
 
-    // Check if we should update document status to 'signed'
-    const allSigs = await Signature.find({ fileId: doc._id });
-    const allSigned = allSigs.every(s => s.status === "signed");
-    if (allSigned) {
-      doc.status = "signed";
-      await doc.save();
-    } else {
-      doc.status = "waiting"; // waiting for other signatures
-      await doc.save();
-    }
+    // Update document status to "signed" (was "pending" — that was wrong)
+    await Document.findByIdAndUpdate(signingToken.documentId, {
+      status: "signed",
+    });
 
     res.status(200).json({ success: true, message: "Signature submitted successfully", signature: sig });
   } catch (err) {
     console.error("Submit signature error:", err);
     res.status(500).json({ message: "Failed to submit signature", error: err.message });
+  }
+});
+
+// POST /api/signatures/reject/:token
+// Signer rejects the document — no auth needed
+router.post("/reject/:token", async (req, res) => {
+  try {
+    const { reason } = req.body;
+    if (!reason) return res.status(400).json({ message: "Rejection reason is required" });
+
+    const signingToken = await SigningToken.findOne({ token: req.params.token });
+
+    if (!signingToken || signingToken.used)
+      return res.status(410).json({ message: "Invalid or already used link" });
+
+    if (new Date() > signingToken.expiresAt)
+      return res.status(410).json({ message: "Link expired" });
+
+    // Mark token as used
+    signingToken.used = true;
+    await signingToken.save();
+
+    // Update document status and rejection reason
+    await Document.findByIdAndUpdate(signingToken.documentId, {
+      status: "rejected",
+      rejectionReason: reason,
+    });
+
+    // Update signature status and rejection reason in signature placeholders
+    await Signature.updateMany(
+      { fileId: signingToken.documentId, signerEmail: signingToken.signerEmail },
+      { status: "rejected", rejectionReason: reason }
+    );
+
+    // Log to audit trail
+    await logAudit({
+      documentId: signingToken.documentId,
+      action: "DOCUMENT_REJECTED",
+      performedBy: signingToken.signerEmail,
+      ipAddress: req.ip,
+      metadata: { reason },
+    });
+
+    res.status(200).json({ message: "Document rejected" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to reject document", error: err.message });
   }
 });
 

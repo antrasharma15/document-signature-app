@@ -84,6 +84,9 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
           signUrl,
         }),
       });
+
+      document.status = "pending";
+      await document.save();
     }
 
     res.status(201).json({

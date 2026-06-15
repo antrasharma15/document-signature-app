@@ -14,6 +14,10 @@ export default function SignPage() {
   const [placeholders, setPlaceholders] = useState([]);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [rejected, setRejected] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [submittingRejection, setSubmittingRejection] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(null);
   const [pdfSize, setPdfSize] = useState({ width: 0, height: 0 });
@@ -22,6 +26,32 @@ export default function SignPage() {
   const [selectedPlaceholderId, setSelectedPlaceholderId] = useState(null);
 
   const pdfWrapRef = useRef(null);
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) return alert("Please provide a reason");
+    try {
+      setSubmittingRejection(true);
+      await API.post(`/signatures/reject/${token}`, {
+        reason: rejectionReason,
+      });
+      setRejected(true);
+      setShowRejectModal(false);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to reject");
+    } finally {
+      setSubmittingRejection(false);
+    }
+  };
+
+  const handleSignButtonClick = () => {
+    if (placeholders.length > 0) {
+      alert("Please click on one of the 'Sign Here' boxes on the document below to draw and place your signature.");
+    } else {
+      setPendingCoords({ x: 50, y: 50 }); // place at center of page
+      setSelectedPlaceholderId(null);
+      setIsModalOpen(true);
+    }
+  };
 
   useEffect(() => {
     // Validate the token and get document info
@@ -91,6 +121,16 @@ export default function SignPage() {
     </div>
   );
 
+  if (rejected) return (
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center font-sans">
+      <div className="text-center p-8 max-w-md bg-slate-800 border border-slate-700/60 rounded-xl shadow-lg">
+        <span className="text-5xl">❌</span>
+        <h2 className="text-2xl font-bold text-red-600 mt-4">Document Rejected</h2>
+        <p className="text-slate-400 text-sm mt-2">The sender has been notified. You can close this tab.</p>
+      </div>
+    </div>
+  );
+
   if (!docInfo) return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center font-sans">
       <div className="text-center">
@@ -121,10 +161,28 @@ export default function SignPage() {
       {/* Main content */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 flex flex-col gap-6">
         <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-white mb-1">Review & Sign Document</h2>
-          <p className="text-slate-400 text-sm mb-4">
-            Document name: <strong className="text-emerald-400 font-medium">{docInfo.filename}</strong>
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Review & Sign Document</h2>
+              <p className="text-slate-400 text-sm">
+                Document name: <strong className="text-emerald-400 font-medium">{docInfo.filename}</strong>
+              </p>
+            </div>
+            <div className="flex gap-3 self-start sm:self-center">
+              <button
+                onClick={handleSignButtonClick}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-semibold transition cursor-pointer"
+              >
+                ✅ Sign Document
+              </button>
+              <button
+                onClick={() => setShowRejectModal(true)}
+                className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded text-sm font-semibold transition cursor-pointer"
+              >
+                ❌ Reject
+              </button>
+            </div>
+          </div>
           <div className="bg-blue-950/40 border border-blue-900/60 text-blue-300 rounded-lg p-3 text-xs flex items-center gap-2">
             <span className="text-base">ℹ️</span>
             {placeholders.length > 0 ? (
@@ -257,6 +315,29 @@ export default function SignPage() {
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleSubmitSignature}
       />
+
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 text-slate-800">
+            <h3 className="font-semibold mb-2">Reason for rejection</h3>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="border rounded w-full p-2 text-sm text-slate-900"
+              rows={3}
+              placeholder="e.g. Incorrect contract terms"
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button onClick={() => setShowRejectModal(false)} className="px-3 py-1 text-sm text-gray-500">
+                Cancel
+              </button>
+              <button onClick={handleReject} className="px-3 py-1 text-sm bg-red-600 text-white rounded">
+                Confirm Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

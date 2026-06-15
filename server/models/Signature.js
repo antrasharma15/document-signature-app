@@ -26,8 +26,12 @@ const signatureSchema = new mongoose.Schema(
       enum: ["pending", "signed", "rejected"],
       default: "pending",
     },
+    rejectionReason: {
+      type: String,
+      default: null,
+    },
     signedAt: { type: Date },
-    signatureImage: { type: String }, // base64 or URL of drawn signature (Day 8)
+    signatureImage: { type: String }, // base64 or URL of drawn signature
   },
   { timestamps: true }
 );

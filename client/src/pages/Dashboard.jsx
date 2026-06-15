@@ -4,6 +4,7 @@ import API, { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import SignaturePlacer from "../components/SignaturePlacer";
 import AuditTrail from "../components/AuditTrail";
+import StatusBadge from "../components/StatusBadge";
 import {
   LayoutDashboard, FileText, Send, Clock, ShieldCheck,
   Settings, Upload, Search, Bell, CheckCircle,
@@ -26,6 +27,7 @@ const S = {
     waiting:  { bg: "#EEF0F9", color: "#3D4D8A" },
     pending:  { bg: "#FEF3E2", color: "#A85E0D" },
     rejected: { bg: "#FCEEE9", color: "#A83620" },
+    draft:    { bg: "#F0F0F7", color: "#6E7491" },
   },
 };
 
@@ -39,11 +41,11 @@ const NAV = [
 ];
 
 const FILTERS = [
-  { id:"all",      label:"All"             },
-  { id:"pending",  label:"Action Required" },
-  { id:"waiting",  label:"Waiting"         },
-  { id:"signed",   label:"Signed"          },
-  { id:"rejected", label:"Rejected"        },
+  { id:"all",      label:"All"      },
+  { id:"draft",    label:"Drafts"   },
+  { id:"pending",  label:"Pending"  },
+  { id:"signed",   label:"Signed"   },
+  { id:"rejected", label:"Rejected" },
 ];
 
 /* ─── Helper functions ──────────────────────────────────────────── */
@@ -75,25 +77,26 @@ function formatTimeAgo(dateString) {
   return Math.floor(seconds) + " sec ago";
 }
 
-function getSignersText(status) {
-  switch (status) {
-    case "signed": return "You (Completed)";
-    case "pending": return "Awaiting your sign";
-    case "rejected": return "Rejected";
-    case "waiting": return "Waiting for others";
-    default: return "Awaiting your sign";
+function getSignersText(doc) {
+  switch (doc.status) {
+    case "draft": return "Draft (Not sent)";
+    case "pending": return doc.signerEmail ? `Awaiting ${doc.signerEmail}` : "Pending";
+    case "waiting": return doc.signerEmail ? `Awaiting ${doc.signerEmail}` : "Pending";
+    case "signed": return doc.signerEmail ? `Signed by ${doc.signerEmail}` : "Completed";
+    case "rejected": return doc.signerEmail ? `Rejected by ${doc.signerEmail}` : "Rejected";
+    default: return doc.status;
   }
 }
 
 /* ─── StatusBadge ───────────────────────────────────────────────── */
 function Badge({ status }) {
-  const labels = { signed:"Signed", waiting:"Waiting", pending:"Action Required", rejected:"Rejected" };
+  const labels = { signed:"Signed", waiting:"Pending", pending:"Pending", rejected:"Rejected", draft:"Draft" };
   const { bg, color } = S.status[status] || S.status.pending;
   return (
     <span style={{ background:bg, color, fontSize:11, fontWeight:600,
                    padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap",
                    letterSpacing:"0.02em" }}>
-      {labels[status] || "Action Required"}
+      {labels[status] || status}
     </span>
   );
 }
@@ -201,14 +204,15 @@ export default function Dashboard() {
   const docs = filter === "all" ? documents : documents.filter(d => d.status === filter);
 
   // Dynamic statistics calculations
-  const pendingCount = documents.filter(d => d.status === "pending").length;
-  const waitingCount = documents.filter(d => d.status === "waiting").length;
+  const pendingCount = documents.filter(d => d.status === "pending" || d.status === "waiting").length;
   const signedCount = documents.filter(d => d.status === "signed").length;
+  const rejectedCount = documents.filter(d => d.status === "rejected").length;
   const totalCount = documents.length;
+  const draftCount = documents.filter(d => d.status === "draft").length;
 
   const statsData = [
-    { label:"Action Required",    value:pendingCount,  bg:S.status.pending.bg,  color:S.status.pending.color,  Icon:AlertCircle  },
-    { label:"Waiting for Others", value:waitingCount,  bg:S.status.waiting.bg,  color:S.status.waiting.color,  Icon:Clock        },
+    { label:"Pending Signature",  value:pendingCount,  bg:S.status.pending.bg,  color:S.status.pending.color,  Icon:Clock        },
+    { label:"Rejected",           value:rejectedCount, bg:S.status.rejected.bg, color:S.status.rejected.color, Icon:AlertCircle  },
     { label:"Completed",          value:signedCount,   bg:S.status.signed.bg,   color:S.status.signed.color,   Icon:CheckCircle  },
     { label:"Total Documents",    value:totalCount,    bg:"#F0F0F7",             color:S.muted,                 Icon:FileText     },
   ];
@@ -282,7 +286,7 @@ export default function Dashboard() {
           </p>
           {NAV.map(({ Icon, label, id }) => {
             const active = nav === id;
-            const badgeValue = id === "waiting" ? waitingCount : undefined;
+            const badgeValue = id === "waiting" ? pendingCount : undefined;
             return (
               <button key={id} onClick={() => setNav(id)} style={{
                 width:"100%", border:"none", cursor:"pointer", textAlign:"left",
@@ -391,7 +395,7 @@ export default function Dashboard() {
               <p style={{ margin:"4px 0 0", fontSize:13, color:S.muted }}>
                 You have{" "}
                 <span style={{ color:"#C97C2A", fontWeight:600 }}>{pendingCount} documents</span>
-                {" "}awaiting your signature.
+                {" "}pending signature.
               </p>
             </div>
             <div style={{ display:"flex", gap:10, flexShrink:0 }}>
@@ -532,9 +536,28 @@ export default function Dashboard() {
                           </div>
                         </td>
 
-                        <td style={{ padding:"13px 18px" }}><Badge status={doc.status} /></td>
+                        <td style={{ padding:"13px 18px" }}>
+                          <StatusBadge status={doc.status} />
+                          {doc.status === "rejected" && doc.rejectionReason && (
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: "#A83620",
+                                marginTop: 4,
+                                fontStyle: "italic",
+                                maxWidth: 180,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                              }}
+                              title={doc.rejectionReason}
+                            >
+                              Reason: {doc.rejectionReason}
+                            </div>
+                          )}
+                        </td>
                         <td style={{ padding:"13px 18px", fontSize:12, color:S.muted }}>
-                          {getSignersText(doc.status)}
+                          {getSignersText(doc)}
                         </td>
                         <td style={{ padding:"13px 18px", fontSize:12, color:S.muted, whiteSpace:"nowrap" }}>
                           {new Date(doc.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}

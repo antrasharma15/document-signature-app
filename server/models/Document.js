@@ -25,10 +25,14 @@ const documentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'signed', 'rejected', 'waiting'],
-    default: 'pending'
+    enum: ['draft', 'pending', 'signed', 'rejected'],
+    default: 'draft'
   },
   signerEmail: {
+    type: String,
+    default: null
+  },
+  rejectionReason: {
     type: String,
     default: null
   }
