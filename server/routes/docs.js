@@ -16,8 +16,21 @@ const protect  = require("../middleware/authMiddleware");
 const sendEmail = require("../utils/SendEmail");
 const { documentUploadedEmail } = require("../utils/EmailTemplates");
 const { logAudit } = require("../utils/audit");
+const validator = require("validator");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
+const getClientOrigin = (req) => {
+  const origin = req.get("origin");
+  if (origin && origin !== "null") return origin;
+  const referer = req.get("referer");
+  if (referer) {
+    try {
+      return new URL(referer).origin;
+    } catch (_) {}
+  }
+  return process.env.CLIENT_URL || CLIENT_URL;
+};
 
 // ── Multer config (same as your existing setup) ───────────────────────────────
 const storage = multer.diskStorage({
@@ -50,6 +63,10 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
 
     const { signerEmail } = req.body;
 
+    if (signerEmail && !validator.isEmail(signerEmail)) {
+      return res.status(400).json({ message: "Invalid signer email address" });
+    }
+
     // Save document record
     const document = await Document.create({
       originalName: req.file.originalname,
@@ -72,7 +89,7 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
     if (signerEmail) {
       // Try to find signer in DB for their name, else use email
       const signer    = await User.findOne({ email: signerEmail });
-      const signUrl   = `${CLIENT_URL}/editor/${document._id}`;
+      const signUrl   = `${getClientOrigin(req)}/editor/${document._id}`;
 
       await sendEmail({
         to:      signerEmail,

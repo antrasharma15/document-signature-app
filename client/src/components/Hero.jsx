@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import dashboardsnap from "../assets/dashboardsnap.jpeg";
 import {
   FileSignature,
   Users,
@@ -21,9 +22,7 @@ import {
   Play,
 } from "lucide-react";
 
-/* ------------------------------------------------------------------ */
-/*  Shared tokens                                                       */
-/* ------------------------------------------------------------------ */
+// shared tokens
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -43,10 +42,7 @@ function SectionLabel({ children }) {
     </span>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Animated signature stroke (signature element)                      */
-/* ------------------------------------------------------------------ */
+// animated signature stroke
 
 function SignatureStroke({ className = "" }) {
   return (
@@ -76,9 +72,7 @@ function SignatureStroke({ className = "" }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Navigation                                                          */
-/* ------------------------------------------------------------------ */
+//navigation
 
 function NavBar() {
   const [scrolled, setScrolled] = useState(false);
@@ -104,17 +98,17 @@ function NavBar() {
       <div className="mx-auto max-w-7xl px-6">
         <div
           className={`flex items-center justify-between rounded-2xl px-5 transition-all duration-300 ${scrolled
-              ? "bg-[#BAC095]/85 backdrop-blur-xl border border-[#3D4127]/10 py-2.5 shadow-[0_8px_30px_rgba(61,65,39,0.15)]"
-              : "bg-transparent py-2"
+            ? "bg-[#BAC095]/85 backdrop-blur-xl border border-[#3D4127]/10 py-2.5 shadow-[0_8px_30px_rgba(61,65,39,0.15)]"
+            : "bg-transparent py-2"
             }`}
         >
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-pink-500">
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 to-green-600">
               <FileSignature className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
             </span>
             <span className="text-[17px] font-semibold tracking-tight text-[#3D4127]">
-              EASY<span className="text-violet-700">sign</span>
+              EASY<span className="text-green-600">sign</span>
             </span>
           </Link>
 
@@ -165,10 +159,7 @@ function NavBar() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Hero                                                                 */
-/* ------------------------------------------------------------------ */
-
+//hero section
 function Hero() {
   const navigate = useNavigate();
 
@@ -208,7 +199,7 @@ function Hero() {
           <motion.div variants={fadeUp} className="mb-6 flex justify-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#BAC095] bg-[#BAC095]/20 px-4 py-1.5 text-[12.5px] font-medium text-[#3D4127]">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Encrypted storage · Full audit trail on every document
+            Full audit trail on every document
             </span>
           </motion.div>
 
@@ -220,7 +211,7 @@ function Hero() {
             <br />
             documents{" "}
             <span className="relative inline-block">
-              <span className="bg-gradient-to-r from-violet-700 via-pink-600 to-rose-700 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-red-700 via-green-600 to-yellow-700 bg-clip-text text-transparent">
                 securely
               </span>
             </span>
@@ -230,9 +221,7 @@ function Hero() {
             variants={fadeUp}
             className="mx-auto mt-6 max-w-xl text-[15.5px] sm:text-lg text-[#3D4127]/80 leading-relaxed"
           >
-            Upload documents, collect legally binding signatures, track
-            progress in real time, and manage everything from one secure
-            dashboard.
+            Upload documents, collect signatures, track status, and manage everything from one dashboard.
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-9 flex flex-wrap items-center justify-center gap-4">
@@ -258,132 +247,23 @@ function Hero() {
     </section>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Dashboard mockup (used in hero + product showcase)                  */
-/* ------------------------------------------------------------------ */
+//Dashboard mockup
 
 function DashboardMockup({ interactive = false }) {
-  const [hovered, setHovered] = useState(null);
-
-  const docs = [
-    { name: "Founders_Agreement.pdf", status: "signed", who: "3/3 signed" },
-    { name: "Vendor_Contract.pdf", status: "pending", who: "1/2 signed" },
-    { name: "Offer_Letter_R.Patel.pdf", status: "pending", who: "0/1 signed" },
-    { name: "MSA_Acme_Corp.pdf", status: "signed", who: "2/2 signed" },
-  ];
-
   return (
     <div className="rounded-2xl border border-[#3D4127]/15 bg-white/70 p-2 shadow-[0_30px_100px_-20px_rgba(61,65,39,0.15)] backdrop-blur-2xl">
-      <div className="rounded-xl border border-[#3D4127]/10 bg-white overflow-hidden">
-        {/* top bar */}
-        <div className="flex items-center gap-2 border-b border-[#3D4127]/10 px-4 py-3">
-          <div className="flex gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-rose-400/70" />
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
-          </div>
-          <span className="ml-2 text-[11px] text-slate-500">app.EASYsign.io/dashboard</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr]">
-          {/* sidebar */}
-          <div className="hidden sm:block border-r border-[#3D4127]/10 p-4 space-y-1">
-            {[
-              { icon: FileStack, label: "All Documents", active: true },
-              { icon: Send, label: "Sent for Signing" },
-              { icon: Clock, label: "Pending" },
-              { icon: CheckCircle2, label: "Completed" },
-              { icon: Activity, label: "Activity Log" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] transition-colors ${item.active
-                  ? "bg-[#3D4127]/10 text-[#3D4127] font-medium"
-                  : "text-slate-500 hover:text-[#3D4127]"
-                  }`}
-              >
-                <item.icon className="h-3.5 w-3.5" />
-                {item.label}
-              </div>
-            ))}
-          </div>
-
-          {/* main */}
-          <div className="p-4 sm:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-[13px] font-semibold text-[#3D4127]">Documents</p>
-                <p className="text-[11px] text-slate-500">4 active · updated just now</p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-600 to-pink-600 px-3 py-1.5 text-[11px] font-semibold text-white">
-                <Upload className="h-3 w-3" />
-                Upload
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {docs.map((doc, i) => (
-                <motion.div
-                  key={doc.name}
-                  onMouseEnter={() => interactive && setHovered(i)}
-                  onMouseLeave={() => interactive && setHovered(null)}
-                  animate={interactive ? { scale: hovered === i ? 1.015 : 1 } : {}}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center justify-between rounded-lg border border-[#3D4127]/10 bg-[#BAC095]/10 px-3.5 py-2.5 transition-colors hover:border-violet-600/30 hover:bg-[#BAC095]/20"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-rose-100 text-[9px] font-bold text-rose-700">
-                      PDF
-                    </span>
-                    <span className="truncate text-[12.5px] text-[#3D4127]">{doc.name}</span>
-                  </div>
-                  <span
-                    className={`shrink-0 ml-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${doc.status === "signed"
-                      ? "bg-emerald-500/10 text-emerald-700"
-                      : "bg-amber-500/10 text-amber-700"
-                      }`}
-                  >
-                    {doc.status === "signed" ? (
-                      <CheckCircle2 className="h-3 w-3" />
-                    ) : (
-                      <Clock className="h-3 w-3" />
-                    )}
-                    {doc.who}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* activity timeline strip */}
-            <div className="mt-4 rounded-lg border border-[#3D4127]/10 bg-[#BAC095]/10 p-3">
-              <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider text-[#3D4127]/60">
-                Recent activity
-              </p>
-              <div className="space-y-1.5">
-                {[
-                  "Riya Patel viewed Offer_Letter_R.Patel.pdf",
-                  "Vendor_Contract.pdf signed by Marcus Lee",
-                  "MSA_Acme_Corp.pdf sent to 2 signers",
-                ].map((a) => (
-                  <div key={a} className="flex items-center gap-2 text-[11px] text-[#3D4127]/80">
-                    <span className="h-1 w-1 rounded-full bg-violet-600" />
-                    {a}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="rounded-xl border border-[#3D4127]/10 overflow-hidden bg-white">
+        <img
+          src={dashboardsnap}
+          alt="EASYsign Dashboard Screenshot"
+          className="w-full h-auto object-cover block"
+        />
       </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Product showcase                                                     */
-/* ------------------------------------------------------------------ */
-
+//product showcase
 function ProductShowcase() {
   return (
     <section id="solutions" className="relative py-28">
@@ -402,11 +282,11 @@ function ProductShowcase() {
             variants={fadeUp}
             className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
           >
-            One dashboard for every document, signer, and signature
+            One dashboard for every document, signer, and signature.
           </motion.h2>
           <motion.p variants={fadeUp} className="mt-4 text-[#3D4127]/80 text-[15px]">
             Upload, send, and track documents in real time — see exactly who's
-            signed, who's pending, and what happened, when.
+            signed, who's pending, and what happened, when?
           </motion.p>
         </motion.div>
 
@@ -423,10 +303,7 @@ function ProductShowcase() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Features                                                             */
-/* ------------------------------------------------------------------ */
-
+//what features do we have in easysign platform!
 
 
 const FEATURES = [
@@ -458,7 +335,7 @@ function Features() {
             variants={fadeUp}
             className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
           >
-            Everything a modern signing workflow needs
+            Everything a modern signing workflow needs!
           </motion.h2>
         </motion.div>
 
@@ -489,9 +366,7 @@ function Features() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  How it works                                                         */
-/* ------------------------------------------------------------------ */
+//steps how it works?
 
 const STEPS = [
   { icon: Upload, title: "Upload Document", desc: "Drag in any PDF — contracts, offer letters, NDAs, or forms." },
@@ -518,7 +393,7 @@ function HowItWorks() {
             variants={fadeUp}
             className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
           >
-            From upload to signed in four easy steps
+            From upload to signed in four easy steps! Get your signed document instantly.
           </motion.h2>
         </motion.div>
 
@@ -559,10 +434,7 @@ function HowItWorks() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Security                                                             */
-/* ------------------------------------------------------------------ */
-
+//securrity of uploaded documents is our top priority!
 const SECURITY_POINTS = [
   { icon: Lock, title: "Encrypted Connections", desc: "All traffic between your browser and the server runs over HTTPS." },
   { icon: Cloud, title: "Access-Controlled Storage", desc: "Uploaded documents are only accessible to their owner and authorized signers." },
@@ -629,7 +501,7 @@ function Security() {
               variants={fadeUp}
               className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
             >
-              Your documents, protected at every layer
+              Your documents, protected at every layer.
             </motion.h2>
             <motion.p variants={fadeUp} className="mt-3 text-[#3D4127]/80 text-[15px] max-w-md">
               Security isn't a feature here — it's the foundation everything
@@ -656,9 +528,8 @@ function Security() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Use cases                                                            */
-/* ------------------------------------------------------------------ */
+
+//who can use our easysign platform?
 
 const USE_CASES = [
   { title: "Businesses", desc: "Send contracts and vendor agreements for fast remote signoff.", icon: FileStack },
@@ -718,24 +589,16 @@ function UseCases() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Stats                                                                */
-/* ------------------------------------------------------------------ */
 
 
 
-
-
-/* ------------------------------------------------------------------ */
-/*  FAQ                                                                  */
-/* ------------------------------------------------------------------ */
-
+// what questions must arise before using EASYsign.
 const FAQS = [
   { q: "Do signers need to create an account?", a: "No. Signers receive a secure, time-limited link by email and can review and sign the document without registering for anything." },
   { q: "What happens to the original document?", a: "The original upload is kept on file, and a separate signed copy is generated with the signature embedded once the signer submits." },
   { q: "Can I see who viewed but didn't sign?", a: "Yes. The activity log records every view, sign, and rejection, so you always know exactly where a document stands." },
   { q: "Can a signer reject a document?", a: "Yes. A signer can decline to sign and provide a reason, which is recorded in the document's activity log and visible to the owner." },
-{ q: "How is my signature added to the document?", a: "You can draw your signature or upload an image of it. It's placed exactly where you position it on the document before it's embedded into the final PDF." },
+  { q: "How is my signature added to the document?", a: "You can draw your signature or upload an image of it. It's placed exactly where you position it on the document before it's embedded into the final PDF." },
   { q: "Can I download the signed document?", a: "Yes. Once a document is signed, the owner can download the finalized PDF with the signature embedded." },
 ];
 function FAQ() {
@@ -807,10 +670,7 @@ function FAQ() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Final CTA                                                            */
-/* ------------------------------------------------------------------ */
-
+// final call to action button
 function FinalCTA() {
   const navigate = useNavigate();
 
@@ -859,13 +719,10 @@ function FinalCTA() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Footer                                                               */
-/* ------------------------------------------------------------------ */
-
+//footer section
 function Footer() {
   const columns = [
-    { title: "Product", links: ["Features","Security"] },
+    { title: "Product", links: ["Features", "Security"] },
     { title: "Company", links: ["About", "Contact"] },
     { title: "Legal", links: ["Privacy Policy", "Terms & Conditions"] },
   ];
@@ -876,16 +733,15 @@ function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
             <a href="#" className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-pink-500">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-green-500">
                 <FileSignature className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
               </span>
               <span className="text-[17px] font-semibold tracking-tight text-[#3D4127]">
-                Signa<span className="text-violet-700">fy</span>
+                EASY<span className="text-green-700">sign</span>
               </span>
             </a>
             <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-[#3D4127]/70">
-              Secure document signing and management for teams that move fast
-              and need a clean paper trail.
+               Document signing and management for anyone who needs a clear record of who signed what, and when.
             </p>
           </div>
 
@@ -912,9 +768,9 @@ function Footer() {
             © {new Date().getFullYear()} EASYsign. All rights reserved.
           </p>
           <div className="flex gap-5 text-[12.5px] text-[#3D4127]/60">
-            <a href="#" className="hover:text-[#3D4127] transition-colors">Twitter</a>
+            {/* <a href="#" className="hover:text-[#3D4127] transition-colors">Twitter</a>
             <a href="#" className="hover:text-[#3D4127] transition-colors">LinkedIn</a>
-            <a href="#" className="hover:text-[#3D4127] transition-colors">GitHub</a>
+            <a href="#" className="hover:text-[#3D4127] transition-colors">GitHub</a> */}
           </div>
         </div>
       </div>
@@ -954,3 +810,4 @@ export default function Home() {
     </div>
   );
 }
+

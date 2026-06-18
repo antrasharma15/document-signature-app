@@ -279,8 +279,27 @@ const documentSignedEmail = ({ ownerName, signerName, documentName, viewUrl }) =
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+const verificationEmail = ({ userName, verificationUrl }) =>
+  baseTemplate(`
+    <h2 style="margin: 0 0 8px; font-size: 20px; color: #111827; font-weight: 700;">
+      Verify your email address
+    </h2>
+    <p style="margin: 0 0 24px; font-size: 14px; color: #6B7280; line-height: 1.6;">
+      Hi <strong>${userName}</strong>,<br/>
+      Thank you for registering with DocSign! Please click the button below to verify your email address and activate your account.
+    </p>
+
+    ${ctaButton("Verify Email", verificationUrl)}
+
+    <p style="text-align:center; font-size: 12px; color: #9CA3AF; margin-top: 24px;">
+      If the button doesn't work, copy this link:<br/>
+      <a href="${verificationUrl}" style="color:#2563EB;">${verificationUrl}</a>
+    </p>
+  `);
+
 module.exports = {
   documentUploadedEmail,
   signatureFieldPlacedEmail,
   documentSignedEmail,
+  verificationEmail,
 };

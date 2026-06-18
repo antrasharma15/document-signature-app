@@ -4,32 +4,87 @@ import { motion } from 'framer-motion';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
+// Email format validator
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+// Password strength — returns { score: 0-4, label, color }
+// Score breakdown: length + uppercase + number + special char
+const getPasswordStrength = (password) => {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  const levels = [
+    { label: 'Too short', color: 'bg-red-400' },
+    { label: 'Weak', color: 'bg-red-400' },
+    { label: 'Fair', color: 'bg-amber-400' },
+    { label: 'Good', color: 'bg-emerald-400' },
+    { label: 'Strong', color: 'bg-emerald-500' },
+  ];
+  return { score, ...levels[score] };
+};
+
 export default function Register() {
   const { login } = useAuth();
   const navigate = useNavigate();
+
   const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const passwordStrength = getPasswordStrength(form.password);
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!form.name.trim()) {
+      newErrors.name = 'Full name is required.';
+    } else if (form.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters.';
+    }
+
+    if (!form.email.trim()) {
+      newErrors.email = 'Email is required.';
+    } else if (!isValidEmail(form.email)) {
+      newErrors.email = 'Enter a valid email address (e.g. name@example.com).';
+    }
+
+    if (!form.password) {
+      newErrors.password = 'Password is required.';
+    } else if (form.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters.';
+    } else if (passwordStrength.score < 2) {
+      newErrors.password = 'Password is too weak. Add uppercase letters, numbers, or symbols.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError('');
+
+    if (!validate()) return;
+
     setLoading(true);
-    setError('');
     try {
-      const res = await API.post('/auth/register', form);
-      // Save to localStorage
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      localStorage.setItem('hasAccount', 'true');
-      // Call login from AuthContext
-      login(res.data.user, res.data.token);
-      navigate('/dashboard');
+      await API.post('/auth/register', form);
+      // Don't log in yet — user must verify email first
+      navigate('/check-email', { state: { email: form.email } });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setServerError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -66,86 +121,162 @@ export default function Register() {
           </h1>
           <p className="mt-2 text-sm text-[#3D4127]/75">
             Already have an account?{' '}
-            <Link to="/login" className="text-violet-700 font-semibold hover:text-violet-600 transition duration-200">
+            <Link
+              to="/login"
+              className="text-violet-700 font-semibold hover:text-violet-600 transition duration-200"
+            >
               Sign in
             </Link>
           </p>
         </motion.div>
 
-        {/* Error box */}
-        {error && (
+        {/* Server error */}
+        {serverError && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-6 rounded-xl border border-red-500/20 bg-red-100/80 px-4 py-3 text-sm text-red-700"
           >
-            {error}
+            {serverError}
           </motion.div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Full Name input field */}
+        <form onSubmit={handleSubmit} autoComplete="on" noValidate className="space-y-5">
+
+          {/* Full Name */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <label className="block text-sm font-medium text-[#3D4127]/75 mb-2">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+            >
               Full Name
             </label>
             <input
+              id="name"
               type="text"
               name="name"
               value={form.name}
               onChange={handleChange}
               placeholder="John Doe"
-              className="w-full rounded-xl border border-[#BAC095] bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:border-violet-600 focus:outline-none transition duration-200"
-              required
+              autoComplete="name"           // browser autofills saved name
+              autoCapitalize="words"
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+                errors.name
+                  ? 'border-red-400 focus:border-red-500'
+                  : 'border-[#BAC095] focus:border-violet-600'
+              }`}
             />
+            {errors.name && (
+              <p className="mt-1.5 text-xs text-red-600">{errors.name}</p>
+            )}
           </motion.div>
 
-          {/* Email input field */}
+          {/* Email */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.55 }}
           >
-            <label className="block text-sm font-medium text-[#3D4127]/75 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+            >
               Email
             </label>
             <input
+              id="email"
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
               placeholder="email@example.com"
-              className="w-full rounded-xl border border-[#BAC095] bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:border-violet-600 focus:outline-none transition duration-200"
-              required
+              autoComplete="email"          // browser autofills saved email
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+                errors.email
+                  ? 'border-red-400 focus:border-red-500'
+                  : 'border-[#BAC095] focus:border-violet-600'
+              }`}
             />
+            {errors.email && (
+              <p className="mt-1.5 text-xs text-red-600">{errors.email}</p>
+            )}
           </motion.div>
 
-          {/* Password input field */}
+          {/* Password */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
-            <label className="block text-sm font-medium text-[#3D4127]/75 mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+            >
               Password
             </label>
             <input
+              id="password"
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full rounded-xl border border-[#BAC095] bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:border-violet-600 focus:outline-none transition duration-200"
-              required
+              autoComplete="new-password"   // tells browser: offer to save this as a NEW password
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+                errors.password
+                  ? 'border-red-400 focus:border-red-500'
+                  : 'border-[#BAC095] focus:border-violet-600'
+              }`}
             />
+
+            {/* Password strength bar — only shown while typing */}
+            {form.password.length > 0 && (
+              <div className="mt-2">
+                <div className="flex gap-1 mb-1">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                        i < passwordStrength.score
+                          ? passwordStrength.color
+                          : 'bg-[#3D4127]/15'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p className={`text-xs font-medium ${
+                  passwordStrength.score <= 1
+                    ? 'text-red-500'
+                    : passwordStrength.score === 2
+                    ? 'text-amber-600'
+                    : 'text-emerald-600'
+                }`}>
+                  {passwordStrength.label}
+                  {passwordStrength.score < 4 && (
+                    <span className="font-normal text-[#3D4127]/50 ml-1">
+                      — try adding{' '}
+                      {!(/[A-Z]/.test(form.password)) && 'an uppercase letter, '}
+                      {!(/[0-9]/.test(form.password)) && 'a number, '}
+                      {!(/[^A-Za-z0-9]/.test(form.password)) && 'a symbol'}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {errors.password && (
+              <p className="mt-1.5 text-xs text-red-600">{errors.password}</p>
+            )}
           </motion.div>
 
-          {/* Submit button */}
+          {/* Submit */}
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}

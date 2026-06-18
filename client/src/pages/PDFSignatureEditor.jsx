@@ -23,6 +23,8 @@ import API, { API_BASE_URL } from "../api/axios";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import AuditTrail from "../components/AuditTrail";
+import { useAuth } from "../context/AuthContext";
+import SignatureModal from "../components/SignatureModal";
 
 pdfjs.GlobalWorkerOptions.workerSrc =
   `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -67,7 +69,23 @@ function fromPercent(pct, containerPx) {
 // ─── SignatureField ───────────────────────────────────────────────────────────
 // A single draggable / resizable field rendered on the PDF overlay
 
-function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete, selected, onSelect }) {
+function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete, selected, onSelect, onSignClick, showToast }) {
+  const { isDarkMode } = useAuth();
+  const theme = isDarkMode ? {
+    blue:       "#528E7E",
+    blueLight:  "#202E29",
+    blueBorder: "#344B43",
+    green:      "#10B981",
+    greenLight: "#1F3A30",
+    red:        "#EF4444",
+    redLight:   "#3B1E1A",
+    ink:        "#F3F4F6",
+    muted:      "#9CA3AF",
+    border:     "#2D3142",
+    surface:    "#1A1D2B",
+    canvas:     "#12141C",
+  } : C;
+
   const fieldRef    = useRef(null);
   const dragStart   = useRef(null); // { mouseX, mouseY, origXpct, origYpct }
   const resizeStart = useRef(null); // { mouseX, mouseY, origWpx, origHpx }
@@ -95,10 +113,16 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
       origYpct: field.y,
     };
 
+    let moved = false;
+
     const onMove = (mv) => {
       if (!dragStart.current || !containerRect) return;
       const dx = mv.clientX - dragStart.current.mouseX;
       const dy = mv.clientY - dragStart.current.mouseY;
+
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        moved = true;
+      }
 
       // New position in % — clamped so field stays inside the PDF
       const newXpct = Math.min(
@@ -120,8 +144,19 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
     };
 
     const onUp = () => {
-      if (dragStart.current?._newX != null) {
+      if (dragStart.current?._newX != null && moved) {
         onMoveEnd(field.id, dragStart.current._newX, dragStart.current._newY);
+      } else if (!moved) {
+        // Reset element position in case of micro-moves
+        if (fieldRef.current) {
+          fieldRef.current.style.left = `${left}px`;
+          fieldRef.current.style.top  = `${top}px`;
+        }
+        if (field.saved && !isSigned) {
+          onSignClick(field);
+        } else if (!field.saved) {
+          showToast("Click 'Save Fields' in the sidebar before signing.", "error");
+        }
       }
       dragStart.current = null;
       window.removeEventListener("mousemove", onMove);
@@ -173,12 +208,16 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
   };
 
   const isSaved  = field.saved;
-  const bgColor  = isSigned ? "#F0FDF4" : (selected ? "#EFF6FF" : "#F0F9FF");
+  const bgColor  = isSigned 
+    ? (isDarkMode ? "#1F3A30" : "#F0FDF4") 
+    : (selected 
+      ? (isDarkMode ? "#202E29" : "#EFF6FF") 
+      : (isDarkMode ? "#17221E" : "#F0F9FF"));
   const border   = isSigned
-    ? `1.5px solid ${C.green}`
+    ? `1.5px solid ${theme.green}`
     : (selected
-      ? `2px solid ${C.blue}`
-      : `1.5px dashed ${isSaved ? C.blue : "#93C5FD"}`);
+      ? `2px solid ${theme.blue}`
+      : `1.5px dashed ${isSaved ? theme.blue : (isDarkMode ? "#344B43" : "#93C5FD")}`);
 
   return (
     <div
@@ -196,7 +235,7 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
         cursor:      isSigned ? "default" : "move",
         userSelect:  "none",
         boxShadow:   selected && !isSigned
-          ? "0 0 0 3px rgba(37,99,235,0.18)"
+          ? `0 0 0 3px ${isDarkMode ? "rgba(82,142,126,0.28)" : "rgba(37,99,235,0.18)"}`
           : "0 1px 4px rgba(0,0,0,0.08)",
         zIndex:      selected ? 20 : 10,
         display:     "flex",
@@ -214,14 +253,14 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
             style={{ width: "90%", height: "90%", objectFit: "contain", pointerEvents: "none" }}
           />
         ) : (
-          <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>Signed</span>
+          <span style={{ fontSize: 11, color: theme.green, fontWeight: 700 }}>Signed</span>
         )
       ) : (
         <>
           {/* Pen icon + label */}
           <span style={{ fontSize: 15, lineHeight: 1 }}>✍️</span>
           <span style={{
-            fontSize: 10, fontWeight: 600, color: C.blue,
+            fontSize: 10, fontWeight: 600, color: theme.blue,
             letterSpacing: 0.3, marginTop: 2,
           }}>
             Signature Field
@@ -230,7 +269,7 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
       )}
 
       {field.signerName && !isSigned && (
-        <span style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>
+        <span style={{ fontSize: 9, color: theme.muted, marginTop: 1 }}>
           {field.signerName}
         </span>
       )}
@@ -245,7 +284,7 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
             top: -9, right: -9,
             width: 19, height: 19,
             borderRadius: "50%",
-            background:   C.red,
+            background:   theme.red,
             border:       "none",
             color:        "#fff",
             fontSize:     12,
@@ -280,7 +319,7 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
             padding:    2,
           }}
         >
-          <svg width="8" height="8" viewBox="0 0 8 8" fill={C.blue} style={{ pointerEvents: "none" }}>
+          <svg width="8" height="8" viewBox="0 0 8 8" fill={theme.blue} style={{ pointerEvents: "none" }}>
             <path d="M8 0L0 8h8V0z" />
           </svg>
         </div>
@@ -293,6 +332,13 @@ function SignatureField({ field, containerRect, onMoveEnd, onResizeEnd, onDelete
 // The draggable chip in the left panel the user picks up and drops onto the PDF
 
 function SidebarToken({ onDragStart }) {
+  const { isDarkMode } = useAuth();
+  const theme = isDarkMode ? {
+    blue:       "#528E7E",
+    blueLight:  "#202E29",
+    muted:      "#9CA3AF",
+  } : C;
+
   return (
     <div
       draggable
@@ -302,21 +348,21 @@ function SidebarToken({ onDragStart }) {
         alignItems:    "center",
         gap:           10,
         padding:       "11px 14px",
-        background:    C.blueLight,
-        border:        `1.5px dashed ${C.blue}`,
+        background:    theme.blueLight,
+        border:        `1.5px dashed ${theme.blue}`,
         borderRadius:  8,
         cursor:        "grab",
         userSelect:    "none",
         marginBottom:  8,
         transition:    "box-shadow 0.15s",
       }}
-      onMouseOver={e => e.currentTarget.style.boxShadow = "0 2px 10px rgba(37,99,235,0.18)"}
+      onMouseOver={e => e.currentTarget.style.boxShadow = isDarkMode ? "0 2px 10px rgba(82,142,126,0.28)" : "0 2px 10px rgba(37,99,235,0.18)"}
       onMouseOut={e  => e.currentTarget.style.boxShadow = "none"}
     >
       <span style={{ fontSize: 20 }}>✍️</span>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.blue }}>Signature Field</div>
-        <div style={{ fontSize: 11, color: C.muted }}>Drag onto the document</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: theme.blue }}>Signature Field</div>
+        <div style={{ fontSize: 11, color: theme.muted }}>Drag onto the document</div>
       </div>
     </div>
   );
@@ -325,12 +371,18 @@ function SidebarToken({ onDragStart }) {
 // ─── Toast ────────────────────────────────────────────────────────────────────
 
 function Toast({ msg, type }) {
+  const { isDarkMode } = useAuth();
+  const theme = isDarkMode ? {
+    red:        "#EF4444",
+    green:      "#10B981",
+  } : C;
+
   return (
     <div style={{
       position:     "fixed",
       bottom:       24,
       right:        24,
-      background:   type === "error" ? C.red : C.green,
+      background:   type === "error" ? theme.red : theme.green,
       color:        "#fff",
       borderRadius: 8,
       padding:      "10px 18px",
@@ -348,6 +400,22 @@ function Toast({ msg, type }) {
 // ─── Main Editor ──────────────────────────────────────────────────────────────
 
 export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
+  const { isDarkMode } = useAuth();
+  const theme = isDarkMode ? {
+    blue:       "#528E7E",
+    blueLight:  "#202E29",
+    blueBorder: "#344B43",
+    green:      "#10B981",
+    greenLight: "#1F3A30",
+    red:        "#EF4444",
+    redLight:   "#3B1E1A",
+    ink:        "#F3F4F6",
+    muted:      "#9CA3AF",
+    border:     "#2D3142",
+    surface:    "#1A1D2B",
+    canvas:     "#12141C",
+  } : C;
+
   const { id: routeFileId } = useParams();
   const fileId = propFileId || routeFileId;
   const [fileUrl, setFileUrl] = useState(null);
@@ -373,6 +441,9 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
   // { id, x, y, widthPx, heightPx, page, saved, _id (when saved), signerName }
   const [fields, setFields]       = useState([]);
   const [selectedId, setSelected] = useState(null);
+  const [signingField, setSigningField] = useState(null);
+  const [auditRefreshTrigger, setAuditRefreshTrigger] = useState(0);
+  const triggerAuditRefresh = useCallback(() => setAuditRefreshTrigger(prev => prev + 1), []);
 
   // Drag-from-sidebar state
   const dragOffsetRef = useRef({ x: 0, y: 0 }); // offset within the token when drag started
@@ -442,6 +513,7 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
       await API.post(`/signatures/send/${fileId}`, { signerEmail });
       showToast(`Signing link sent to ${signerEmail} ✓`);
       setSignerEmail("");
+      triggerAuditRefresh();
     } catch (err) {
       console.error(err);
       showToast("Failed to send link", "error");
@@ -571,6 +643,35 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
     showToast("Field removed.");
   }, [fields, selectedId]);
 
+  const handleSignConfirm = async (signatureImage) => {
+    if (!signingField) return;
+    setSaving(true);
+    try {
+      const res = await API.put(`/signatures/${signingField._id}/sign`, {
+        signatureImage,
+      });
+      setFields(prev =>
+        prev.map(f =>
+          f.id === signingField.id
+            ? {
+                ...f,
+                status: "signed",
+                signatureImage: res.data.signature.signatureImage,
+              }
+            : f
+        )
+      );
+      showToast("Signed successfully ✓");
+      setSigningField(null);
+      triggerAuditRefresh();
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to sign this field.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // ── Save all unsaved fields to backend ───────────────────────────────────────
   const handleSaveAll = async () => {
     const unsaved = fields.filter(f => !f.saved);
@@ -653,7 +754,7 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
       gap:        0,
       height:     propFileId ? "100%" : "calc(100vh - 64px)",
       fontFamily: "'Inter', system-ui, sans-serif",
-      background: C.canvas,
+      background: theme.canvas,
       overflow:   "hidden",
     }}>
 
@@ -661,8 +762,8 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
       <aside style={{
         width:      260,
         flexShrink: 0,
-        background: C.surface,
-        borderRight: `1px solid ${C.border}`,
+        background: theme.surface,
+        borderRight: `1px solid ${theme.border}`,
         padding:    "20px 16px",
         display:    "flex",
         flexDirection: "column",
@@ -674,20 +775,20 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             margin:     "0 0 4px",
             fontSize:   11,
             fontWeight: 700,
-            color:      C.muted,
+            color:      theme.muted,
             letterSpacing: 1,
             textTransform: "uppercase",
           }}>
             Field Types
           </p>
-          <p style={{ margin: "0 0 10px", fontSize: 12, color: C.muted }}>
+          <p style={{ margin: "0 0 10px", fontSize: 12, color: theme.muted }}>
             Drag a field onto the document to mark where a signature goes.
           </p>
           <SidebarToken onDragStart={handleTokenDragStart} />
         </div>
 
         {/* Divider */}
-        <div style={{ borderTop: `1px solid ${C.border}` }} />
+        <div style={{ borderTop: `1px solid ${theme.border}` }} />
 
         {/* Page navigator */}
         <div>
@@ -695,7 +796,7 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             margin:     "0 0 8px",
             fontSize:   11,
             fontWeight: 700,
-            color:      C.muted,
+            color:      theme.muted,
             letterSpacing: 1,
             textTransform: "uppercase",
           }}>
@@ -705,21 +806,21 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             <button
               disabled={currentPage <= 1}
               onClick={() => { setCurrentPage(p => p - 1); setSelected(null); }}
-              style={navBtn(currentPage <= 1)}
+              style={navBtn(currentPage <= 1, theme)}
             >←</button>
-            <span style={{ fontSize: 13, color: C.ink, flex: 1, textAlign: "center" }}>
+            <span style={{ fontSize: 13, color: theme.ink, flex: 1, textAlign: "center" }}>
               {currentPage} / {totalPages || "—"}
             </span>
             <button
               disabled={!totalPages || currentPage >= totalPages}
               onClick={() => { setCurrentPage(p => p + 1); setSelected(null); }}
-              style={navBtn(!totalPages || currentPage >= totalPages)}
+              style={navBtn(!totalPages || currentPage >= totalPages, theme)}
             >→</button>
           </div>
         </div>
 
         {/* Divider */}
-        <div style={{ borderTop: `1px solid ${C.border}` }} />
+        <div style={{ borderTop: `1px solid ${theme.border}` }} />
 
         {/* Field list */}
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -727,14 +828,14 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             margin:     "0 0 8px",
             fontSize:   11,
             fontWeight: 700,
-            color:      C.muted,
+            color:      theme.muted,
             letterSpacing: 1,
             textTransform: "uppercase",
           }}>
             Placed Fields ({fields.length})
           </p>
           {fields.length === 0 && (
-            <p style={{ fontSize: 12, color: C.muted }}>
+            <p style={{ fontSize: 12, color: theme.muted }}>
               No fields yet. Drag a Signature Field onto the document.
             </p>
           )}
@@ -748,21 +849,21 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
                 justifyContent: "space-between",
                 padding:      "7px 10px",
                 borderRadius: 6,
-                border:       `1px solid ${selectedId === f.id ? C.blue : C.border}`,
-                background:   selectedId === f.id ? C.blueLight : C.surface,
+                border:       `1px solid ${selectedId === f.id ? theme.blue : theme.border}`,
+                background:   selectedId === f.id ? theme.blueLight : theme.surface,
                 marginBottom: 4,
                 cursor:       "pointer",
                 fontSize:     12,
               }}
             >
-              <span style={{ color: C.ink }}>
+              <span style={{ color: theme.ink }}>
                 ✍️ Page {f.page}
               </span>
               <span style={{
                 fontSize:     10,
                 fontWeight:   600,
-                color:        f.status === "signed" ? C.green : (f.saved ? C.blue : C.blue),
-                background:   f.status === "signed" ? C.greenLight : (f.saved ? C.blueLight : C.blueLight),
+                color:        f.status === "signed" ? theme.green : theme.blue,
+                background:   f.status === "signed" ? theme.greenLight : theme.blueLight,
                 borderRadius: 20,
                 padding:      "2px 8px",
               }}>
@@ -778,7 +879,7 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             margin:     "0 0 8px",
             fontSize:   11,
             fontWeight: 700,
-            color:      C.muted,
+            color:      theme.muted,
             letterSpacing: 1,
             textTransform: "uppercase",
           }}>
@@ -793,10 +894,12 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
               style={{
                 width: "100%",
                 padding: "8px 12px",
-                border: `1px solid ${C.border}`,
+                border: `1px solid ${theme.border}`,
                 borderRadius: 6,
                 fontSize: 13,
                 outline: "none",
+                background: isDarkMode ? "#202330" : "#fff",
+                color: theme.ink,
               }}
             />
             <button
@@ -807,7 +910,7 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
                 padding: "9px",
                 borderRadius: 6,
                 border: "none",
-                background: sending ? "#D1D5DB" : C.blue,
+                background: sending ? "#D1D5DB" : theme.blue,
                 color: "#fff",
                 fontWeight: 600,
                 fontSize: 13,
@@ -820,7 +923,7 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
         </div>
 
         {/* Divider */}
-        <div style={{ borderTop: `1px solid ${C.border}` }} />
+        <div style={{ borderTop: `1px solid ${theme.border}` }} />
 
         {/* Save button */}
         <button
@@ -830,12 +933,12 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             padding:      "11px",
             borderRadius: 8,
             border:       "none",
-            background:   saving || unsavedCount === 0 ? "#D1D5DB" : C.blue,
-            color:        saving || unsavedCount === 0 ? C.muted : "#fff",
+            background:   saving || unsavedCount === 0 ? "#D1D5DB" : theme.blue,
+            color:        saving || unsavedCount === 0 ? theme.muted : "#fff",
             fontWeight:   700,
             fontSize:     14,
             cursor:       saving || unsavedCount === 0 ? "not-allowed" : "pointer",
-            boxShadow:    unsavedCount > 0 ? "0 2px 10px rgba(37,99,235,0.28)" : "none",
+            boxShadow:    unsavedCount > 0 ? `0 2px 10px ${isDarkMode ? "rgba(82,142,126,0.28)" : "rgba(37,99,235,0.28)"}` : "none",
             transition:   "background 0.2s",
             marginBottom: 10,
           }}
@@ -855,12 +958,12 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
               padding:      "11px",
               borderRadius: 8,
               border:       "none",
-              background:   finalizing ? "#D1D5DB" : "#16A34A",
+              background:   finalizing ? "#D1D5DB" : theme.green,
               color:        "#fff",
               fontWeight:   700,
               fontSize:     14,
               cursor:       finalizing ? "not-allowed" : "pointer",
-              boxShadow:    "0 2px 8px rgba(22,163,74,0.30)",
+              boxShadow:    `0 2px 8px ${isDarkMode ? "rgba(16,185,129,0.30)" : "rgba(22,163,74,0.30)"}`,
               transition:   "background 0.2s",
               marginBottom: 10,
             }}
@@ -874,9 +977,9 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
           style={{
             padding:      "11px",
             borderRadius: 8,
-            border:       `1px solid ${C.red}`,
+            border:       `1px solid ${theme.red}`,
             background:   "transparent",
-            color:        C.red,
+            color:        theme.red,
             fontWeight:   700,
             fontSize:     14,
             cursor:       "pointer",
@@ -884,18 +987,18 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             marginBottom: 10,
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = C.red;
+            e.currentTarget.style.background = theme.red;
             e.currentTarget.style.color = "#fff";
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = C.red;
+            e.currentTarget.style.color = theme.red;
           }}
         >
           🗑️ Delete Document
         </button>
 
-        <AuditTrail docId={fileId} />
+        <AuditTrail docId={fileId} refreshTrigger={auditRefreshTrigger} />
       </aside>
 
       {/* ── Main Canvas ── */}
@@ -913,8 +1016,8 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
           <div style={{
             position:     "fixed",
             inset:        0,
-            background:   "rgba(37,99,235,0.08)",
-            border:       `3px dashed ${C.blue}`,
+            background:   isDarkMode ? "rgba(82,142,126,0.08)" : "rgba(37,99,235,0.08)",
+            border:       `3px dashed ${theme.blue}`,
             zIndex:       50,
             pointerEvents: "none",
             display:      "flex",
@@ -922,7 +1025,7 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             justifyContent: "center",
           }}>
             <div style={{
-              background:   C.blue,
+              background:   theme.blue,
               color:        "#fff",
               borderRadius: 12,
               padding:      "16px 28px",
@@ -944,21 +1047,22 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
           style={{
             position:     "relative",
             width:        `${PDF_WIDTH}px`,
-            background:   C.surface,
+            background:   isDarkMode ? "#1C1F2E" : theme.surface,
             borderRadius: 8,
-            boxShadow:    "0 4px 32px rgba(0,0,0,0.10)",
+            boxShadow:    isDarkMode ? "0 4px 32px rgba(0,0,0,0.40)" : "0 4px 32px rgba(0,0,0,0.10)",
             border:       isDragOver
-              ? `2px dashed ${C.blue}`
-              : `1px solid ${C.border}`,
+              ? `2px dashed ${theme.blue}`
+              : `1px solid ${theme.border}`,
             overflow:     "hidden",
             transition:   "border 0.15s",
+            flexShrink:   0,
           }}
         >
           <Document
             file={fileUrl}
             onLoadSuccess={({ numPages }) => setTotalPages(numPages)}
             loading={<Placeholder text="Loading PDF…" />}
-            error={<Placeholder text="Failed to load PDF." color={C.red} />}
+            error={<Placeholder text="Failed to load PDF." color={theme.red} />}
           >
             <Page
               pageNumber={currentPage}
@@ -980,6 +1084,8 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
               onDelete={handleDelete}
               selected={selectedId === field.id}
               onSelect={setSelected}
+              onSignClick={setSigningField}
+              showToast={showToast}
             />
           ))}
 
@@ -990,12 +1096,12 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
               bottom:         20,
               left:           "50%",
               transform:      "translateX(-50%)",
-              background:     "rgba(255,255,255,0.88)",
-              border:         `1px dashed ${C.border}`,
+              background:     isDarkMode ? "rgba(26,29,43,0.92)" : "rgba(255,255,255,0.88)",
+              border:         `1px dashed ${theme.border}`,
               borderRadius:   8,
               padding:        "8px 18px",
               fontSize:       13,
-              color:          C.muted,
+              color:          theme.muted,
               pointerEvents:  "none",
               whiteSpace:     "nowrap",
             }}>
@@ -1012,9 +1118,9 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
             <div style={{
               marginTop:    12,
               fontSize:     12,
-              color:        C.muted,
-              background:   C.surface,
-              border:       `1px solid ${C.border}`,
+              color:        theme.muted,
+              background:   theme.surface,
+              border:       `1px solid ${theme.border}`,
               borderRadius: 6,
               padding:      "6px 14px",
               display:      "flex",
@@ -1025,13 +1131,19 @@ export default function PDFSignatureEditor({ fileId: propFileId, onClose }) {
               <span>page: <strong>{f.page}</strong></span>
               <span>w: <strong>{f.widthPx}px</strong></span>
               <span>h: <strong>{f.heightPx}px</strong></span>
-              <span style={{ color: f.saved ? C.green : C.blue, fontWeight: 600 }}>
+              <span style={{ color: f.saved ? theme.green : theme.blue, fontWeight: 600 }}>
                 {f.saved ? "● Saved" : "○ Unsaved"}
               </span>
             </div>
           );
         })()}
       </main>
+
+      <SignatureModal
+        isOpen={!!signingField}
+        onClose={() => setSigningField(null)}
+        onConfirm={handleSignConfirm}
+      />
 
       {toast && <Toast msg={toast.msg} type={toast.type} />}
     </div>
@@ -1053,14 +1165,14 @@ function Placeholder({ text, color = "#9CA3AF" }) {
   );
 }
 
-function navBtn(disabled) {
+function navBtn(disabled, theme) {
   return {
     width:        32,
     height:       32,
     borderRadius: 6,
-    border:       `1px solid ${C.border}`,
-    background:   disabled ? C.canvas : C.surface,
-    color:        disabled ? C.muted  : C.ink,
+    border:       `1px solid ${theme.border}`,
+    background:   disabled ? theme.canvas : theme.surface,
+    color:        disabled ? theme.muted  : theme.ink,
     cursor:       disabled ? "not-allowed" : "pointer",
     fontSize:     16,
     display:      "flex",

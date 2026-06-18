@@ -22,8 +22,21 @@ const SigningToken = require("../models/SigningToken");
 const { sendSigningLink } = require("../utils/mailer");
 const { logAudit } = require("../utils/audit");
 const AuditLog = require("../models/AuditLog");
+const validator = require("validator");
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
+const getClientOrigin = (req) => {
+  const origin = req.get("origin");
+  if (origin && origin !== "null") return origin;
+  const referer = req.get("referer");
+  if (referer) {
+    try {
+      return new URL(referer).origin;
+    } catch (_) {}
+  }
+  return process.env.CLIENT_URL || CLIENT_URL;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/signatures
@@ -37,6 +50,10 @@ router.post("/", protect, async (req, res) => {
       return res.status(400).json({
         message: "fileId, x, y, and page are required",
       });
+    }
+
+    if (signerEmail && !validator.isEmail(signerEmail)) {
+      return res.status(400).json({ message: "Invalid signer email address" });
     }
 
     // Create the signature field
@@ -59,7 +76,7 @@ router.post("/", protect, async (req, res) => {
     // signerEmail can be passed in body, or fall back to the logged-in user
     const recipientEmail = signerEmail || signature.signer.email;
     const recipientName  = signature.signer.name || "User";
-    const signUrl        = `${CLIENT_URL}/editor/${fileId}`;
+    const signUrl        = `${getClientOrigin(req)}/editor/${fileId}`;
 
     await sendEmail({
       to:      recipientEmail,
@@ -140,7 +157,7 @@ const handleSign = async (req, res) => {
     }
 
     const owner    = document?.uploadedBy;
-    const viewUrl  = `${CLIENT_URL}/editor/${sig.fileId}`;
+    const viewUrl  = `${getClientOrigin(req)}/editor/${sig.fileId}`;
 
     if (owner) {
       await sendEmail({
@@ -266,17 +283,40 @@ router.post("/finalize/:docId", protect, async (req, res) => {
       const sigWidth = (sig.width || 150) * scale;
       const sigHeight = (sig.height || 50) * scale;
 
+      // Calculate the image's original dimensions and preserve aspect ratio (object-fit: contain)
+      const imgWidth = embeddedImage.width;
+      const imgHeight = embeddedImage.height;
+      const boxRatio = sigWidth / sigHeight;
+      const imgRatio = imgWidth / imgHeight;
+
+      let drawWidth = sigWidth;
+      let drawHeight = sigHeight;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (imgRatio > boxRatio) {
+        // Image is wider than the box
+        drawWidth = sigWidth;
+        drawHeight = sigWidth / imgRatio;
+        offsetY = (sigHeight - drawHeight) / 2;
+      } else {
+        // Image is taller than the box
+        drawHeight = sigHeight;
+        drawWidth = sigHeight * imgRatio;
+        offsetX = (sigWidth - drawWidth) / 2;
+      }
+
       // Convert percentage coordinates (0-100) to actual PDF points
-      const pdfX = (sig.x / 100) * pageWidth;
+      const pdfX = ((sig.x / 100) * pageWidth) + offsetX;
       // Flip Y: PDF origin is bottom-left, database coordinates are percentage from top
-      const pdfY = pageHeight - ((sig.y / 100) * pageHeight) - sigHeight;
+      const pdfY = pageHeight - ((sig.y / 100) * pageHeight) - sigHeight + offsetY;
 
       // Draw the image on the page
       page.drawImage(embeddedImage, {
         x: pdfX,
         y: pdfY,
-        width: sigWidth,
-        height: sigHeight,
+        width: drawWidth,
+        height: drawHeight,
       });
     }
 
@@ -359,6 +399,8 @@ router.post("/send/:docId", protect, async (req, res) => {
     const { signerEmail } = req.body;
     if (!signerEmail)
       return res.status(400).json({ message: "Signer email is required" });
+    if (!validator.isEmail(signerEmail))
+      return res.status(400).json({ message: "Invalid signer email address" });
 
     // Find the document
     const doc = await Document.findById(req.params.docId);
@@ -389,7 +431,7 @@ router.post("/send/:docId", protect, async (req, res) => {
     });
 
     // Build the public signing URL (no auth required on this route)
-    const signingUrl = `${process.env.CLIENT_URL || CLIENT_URL}/sign/${token}`;
+    const signingUrl = `${getClientOrigin(req)}/sign/${token}`;
 
     // Send the email
     await sendSigningLink(signerEmail, signingUrl, doc.originalName || doc.filename || doc.fileName);

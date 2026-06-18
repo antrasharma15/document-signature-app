@@ -10,7 +10,7 @@ const S = {
 };
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout, isDarkMode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -24,18 +24,25 @@ export default function Sidebar() {
     { Icon: Settings, label: "Settings", path: "/settings" },
   ];
 
+  const currentTheme = isDarkMode ? {
+    sidebar: "#0F111A",
+    accent: "#528E7E",
+    text: "#F3F4F6",
+    muted: "#9CA3AF",
+  } : S;
+
   const firstLetter = (user?.name || "U").substring(0, 1).toUpperCase();
 
   return (
     <aside style={{
-      width: 240, minWidth: 240, background: S.sidebar,
+      width: 240, minWidth: 240, background: currentTheme.sidebar,
       display: "flex", flexDirection: "column", height: "100vh"
     }}>
       {/* Logo */}
       <div style={{ padding: "22px 18px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }} onClick={() => navigate("/dashboard")} className="cursor-pointer">
           <div style={{
-            width: 36, height: 36, borderRadius: 10, background: S.accent,
+            width: 36, height: 36, borderRadius: 10, background: currentTheme.accent,
             display: "flex", alignItems: "center", justifyContent: "center"
           }}>
             <Pen size={16} color="#fff" />
@@ -44,7 +51,7 @@ export default function Sidebar() {
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em" }}>
               EASYsign
             </div>
-            <div style={{ color: S.muted, fontSize: 10, fontWeight: 500, marginTop: 1 }}>
+            <div style={{ color: currentTheme.muted, fontSize: 10, fontWeight: 500, marginTop: 1 }}>
               Digital Signatures
             </div>
           </div>
@@ -69,8 +76,8 @@ export default function Sidebar() {
                 width: "100%", border: "none", cursor: "pointer", textAlign: "left",
                 display: "flex", alignItems: "center", gap: 10,
                 padding: "9px 12px", borderRadius: 8, marginBottom: 2,
-                background: active ? S.accent : "transparent",
-                color: active ? "#fff" : S.muted,
+                background: active ? currentTheme.accent : "transparent",
+                color: active ? "#fff" : currentTheme.muted,
                 fontSize: 13, fontWeight: active ? 600 : 400,
                 transition: "all 0.15s ease",
               }}
@@ -89,7 +96,7 @@ export default function Sidebar() {
           padding: "10px 12px", display: "flex", alignItems: "center", gap: 10
         }}>
           <div style={{
-            width: 32, height: 32, borderRadius: "50%", background: S.accent,
+            width: 32, height: 32, borderRadius: "50%", background: currentTheme.accent,
             flexShrink: 0, display: "flex", alignItems: "center",
             justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13
           }}>
@@ -99,11 +106,11 @@ export default function Sidebar() {
             <div style={{ color: "#ffffff", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {user?.name || "User"}
             </div>
-            <div style={{ color: S.muted, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ color: currentTheme.muted, fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {user?.email || "Email"}
             </div>
           </div>
-          <LogOut size={14} color={S.muted} style={{ cursor: "pointer", flexShrink: 0 }} onClick={handleLogout} />
+          <LogOut size={14} color={currentTheme.muted} style={{ cursor: "pointer", flexShrink: 0 }} onClick={handleLogout} />
         </div>
       </div>
     </aside>

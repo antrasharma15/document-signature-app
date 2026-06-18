@@ -7,6 +7,10 @@ export const AuthProvider = ({ children }) => {
     JSON.parse(localStorage.getItem('user')) || null
   );
 
+  const [isDarkMode, setIsDarkMode] = useState(
+    localStorage.getItem('darkMode') === 'true'
+  );
+
   const login = (userData, token) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
@@ -19,8 +23,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const toggleDarkMode = (val) => {
+    localStorage.setItem('darkMode', val ? 'true' : 'false');
+    setIsDarkMode(val);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isDarkMode, toggleDarkMode }}>
       {children}
     </AuthContext.Provider>
   );

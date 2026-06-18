@@ -86,8 +86,18 @@ function getSignersText(doc) {
 
 /* ─── StatusBadge ───────────────────────────────────────────────── */
 function Badge({ status }) {
+  const { isDarkMode } = useAuth();
   const labels = { signed:"Signed", waiting:"Pending", pending:"Pending", rejected:"Rejected", draft:"Draft" };
-  const { bg, color } = S.status[status] || S.status.pending;
+  
+  const statusTheme = isDarkMode ? {
+    signed:   { bg: "#1F3A30", color: "#62C4A5" },
+    waiting:  { bg: "#232A45", color: "#95A4FC" },
+    pending:  { bg: "#3D2E1A", color: "#FBBF24" },
+    rejected: { bg: "#3B1E1A", color: "#F87171" },
+    draft:    { bg: "#2E2E38", color: "#9CA3AF" },
+  } : S.status;
+  
+  const { bg, color } = statusTheme[status] || statusTheme.pending;
   return (
     <span style={{ background:bg, color, fontSize:11, fontWeight:600,
                    padding:"3px 10px", borderRadius:20, whiteSpace:"nowrap",
@@ -109,6 +119,21 @@ export default function Dashboard() {
   const [signerEmail, setSignerEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const { user, logout, isDarkMode } = useAuth();
+  const navigate = useNavigate();
+
+  const currentTheme = {
+    bg:          isDarkMode ? "#12141C" : S.bg,
+    sidebar:     isDarkMode ? "#0F111A" : S.sidebar,
+    card:        isDarkMode ? "#1A1D2B" : S.card,
+    accent:      isDarkMode ? "#528E7E" : S.accent,
+    accentLight: isDarkMode ? "#202E29" : S.accentLight,
+    text:        isDarkMode ? "#F3F4F6" : S.text,
+    muted:       isDarkMode ? "#9CA3AF" : S.muted,
+    border:      isDarkMode ? "#2D3142" : S.border,
+  };
 
   const handleSendForSigning = async (docId) => {
     if (!signerEmail) return alert("Enter signer's email");
@@ -124,9 +149,6 @@ export default function Dashboard() {
       setSending(false);
     }
   };
-
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   // Fetch documents from server
   const fetchDocuments = async () => {
@@ -255,10 +277,10 @@ export default function Dashboard() {
   const totalCount = counts.all;
 
   const statsData = [
-    { label:"Pending Signature",  value:pendingCount,  bg:S.status.pending.bg,  color:S.status.pending.color,  Icon:Clock        },
-    { label:"Rejected",           value:rejectedCount, bg:S.status.rejected.bg, color:S.status.rejected.color, Icon:AlertCircle  },
-    { label:"Completed",          value:signedCount,   bg:S.status.signed.bg,   color:S.status.signed.color,   Icon:CheckCircle  },
-    { label:"Total Documents",    value:totalCount,    bg:"#F0F0F7",             color:S.muted,                 Icon:FileText     },
+    { label:"Pending Signature",  value:pendingCount,  bg: isDarkMode ? "#3D2E1A" : S.status.pending.bg,  color: isDarkMode ? "#FBBF24" : S.status.pending.color,  Icon:Clock        },
+    { label:"Rejected",           value:rejectedCount, bg: isDarkMode ? "#3B1E1A" : S.status.rejected.bg, color: isDarkMode ? "#F87171" : S.status.rejected.color, Icon:AlertCircle  },
+    { label:"Completed",          value:signedCount,   bg: isDarkMode ? "#1F3A30" : S.status.signed.bg,   color: isDarkMode ? "#62C4A5" : S.status.signed.color,   Icon:CheckCircle  },
+    { label:"Total Documents",    value:totalCount,    bg: isDarkMode ? "#252836" : "#F0F0F7",             color: currentTheme.muted,                 Icon:FileText     },
   ];
 
   // Dynamic activity log generation from documents
@@ -291,14 +313,14 @@ export default function Dashboard() {
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 4);
 
-  const card = { background:S.card, borderRadius:12, border:`1px solid ${S.border}` };
+  const card = { background:currentTheme.card, borderRadius:12, border:`1px solid ${currentTheme.border}` };
 
   const firstLetter = (user?.name || "U").substring(0, 1).toUpperCase();
 
   return (
     <div style={{ display:"flex", height:"100vh", overflow:"hidden",
                   fontFamily:"'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-                  background:S.bg, fontSize:14 }}>
+                  background:currentTheme.bg, fontSize:14 }}>
 
       {/* ════════════ SIDEBAR ════════════ */}
       <Sidebar />
@@ -307,43 +329,115 @@ export default function Dashboard() {
       <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
 
         {/* Top bar */}
-        <header style={{ background:S.card, borderBottom:`1px solid ${S.border}`,
+        <header style={{ background:currentTheme.card, borderBottom:`1px solid ${currentTheme.border}`,
                          height:58, padding:"0 22px", flexShrink:0,
                          display:"flex", alignItems:"center", gap:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8,
-                        background:S.bg, borderRadius:8, padding:"7px 12px",
+                        background:isDarkMode ? "#202330" : S.bg, borderRadius:8, padding:"7px 12px",
                         flex:1, maxWidth:300 }}>
-            <Search size={14} color={S.muted} />
+            <Search size={14} color={currentTheme.muted} />
             <input
               placeholder="Search documents…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 border:"none", background:"transparent", outline:"none",
-                fontSize:13, color:S.text, width:"100%",
+                fontSize:13, color:currentTheme.text, width:"100%",
               }}
             />
           </div>
           <div style={{ flex:1 }} />
 
           {/* User chip */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer",
-                        padding:"5px 10px", borderRadius:8, border:`1px solid ${S.border}` }}>
-            <div style={{ width:28, height:28, borderRadius:"50%",
-                          background:S.accentLight, border:`2px solid ${S.accent}`,
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          color:S.accent, fontWeight:700, fontSize:12 }}>
-              {firstLetter}
-            </div>
-            <div>
-              <div style={{ fontSize:12, fontWeight:600, color:S.text, lineHeight:1.3 }}>
-                {user?.name || "User"}
+          <div style={{ position: "relative" }}>
+            <div 
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer",
+                            padding:"5px 10px", borderRadius:8, border:`1px solid ${currentTheme.border}` }}
+            >
+              <div style={{ width:28, height:28, borderRadius:"50%",
+                            background:currentTheme.accentLight, border:`2px solid ${currentTheme.accent}`,
+                            display:"flex", alignItems:"center", justifyIntent:"center", justifyContent:"center",
+                            color:currentTheme.accent, fontWeight:700, fontSize:12 }}>
+                {firstLetter}
               </div>
-              <div style={{ fontSize:10, color:S.muted }}>
-                {user?.email || "Email"}
+              <div>
+                <div style={{ fontSize:12, fontWeight:600, color:currentTheme.text, lineHeight:1.3 }}>
+                  {user?.name || "User"}
+                </div>
+                <div style={{ fontSize:10, color:currentTheme.muted }}>
+                  {user?.email || "Email"}
+                </div>
               </div>
+              <ChevronDown size={13} color={currentTheme.muted} />
             </div>
-            <ChevronDown size={13} color={S.muted} />
+
+            {/* Dropdown Menu */}
+            {menuOpen && (
+              <>
+                <div 
+                  onClick={() => setMenuOpen(false)}
+                  style={{ position: "fixed", inset: 0, zIndex: 99, cursor: "default" }}
+                />
+                <div style={{
+                  position: "absolute",
+                  top: "110%",
+                  right: 0,
+                  background: currentTheme.card,
+                  border: `1px solid ${currentTheme.border}`,
+                  borderRadius: 8,
+                  boxShadow: isDarkMode ? "0 4px 20px rgba(0,0,0,0.5)" : "0 4px 12px rgba(0,0,0,0.08)",
+                  zIndex: 100,
+                  width: 160,
+                  padding: "4px 0",
+                }}>
+                  <button
+                    onClick={() => { setMenuOpen(false); navigate("/settings"); }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      width: "100%",
+                      padding: "8px 12px",
+                      border: "none",
+                      background: "transparent",
+                      color: currentTheme.text,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? "#252836" : "#F3F4F6"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    <Settings size={14} color={currentTheme.muted} />
+                    Settings
+                  </button>
+                  <button
+                    onClick={() => { setMenuOpen(false); handleLogout(); }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      width: "100%",
+                      padding: "8px 12px",
+                      border: "none",
+                      background: "transparent",
+                      color: "#EF4444",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? "#3B1E1A" : "#FEE2E2"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    <LogOut size={14} color="#EF4444" />
+                    Log Out
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
@@ -354,27 +448,20 @@ export default function Dashboard() {
           <div style={{ display:"flex", justifyContent:"space-between",
                         alignItems:"flex-start", marginBottom:22 }}>
             <div>
-              <h1 style={{ margin:0, fontSize:21, fontWeight:700, color:S.text,
+              <h1 style={{ margin:0, fontSize:21, fontWeight:700, color:currentTheme.text,
                            letterSpacing:"-0.02em" }}>
                 Good morning, {user?.name || "User"} 
               </h1>
-              <p style={{ margin:"4px 0 0", fontSize:13, color:S.muted }}>
+              <p style={{ margin:"4px 0 0", fontSize:13, color:currentTheme.muted }}>
                 You have{" "}
                 <span style={{ color:"#C97C2A", fontWeight:600 }}>{pendingCount} documents</span>
                 {" "}pending signature.
               </p>
             </div>
             <div style={{ display:"flex", gap:10, flexShrink:0 }}>
-              {/* <button style={{
-                display:"flex", alignItems:"center", gap:6, padding:"8px 15px",
-                borderRadius:8, border:`1.5px solid ${S.border}`,
-                background:S.card, color:S.text, fontSize:13, fontWeight:500, cursor:"pointer",
-              }}>
-                <Send size={13} /> Send for Signature
-              </button> */}
               <button onClick={triggerFileInput} style={{
                 display:"flex", alignItems:"center", gap:6, padding:"8px 18px",
-                borderRadius:8, border:"none", background:S.accent, color:"#fff",
+                borderRadius:8, border:"none", background:currentTheme.accent, color:"#fff",
                 fontSize:13, fontWeight:600, cursor:"pointer",
               }}>
                 <Plus size={14} /> {uploading ? "Uploading..." : "Upload Document"}
@@ -392,10 +479,10 @@ export default function Dashboard() {
                   <Icon size={20} color={color} />
                 </div>
                 <div>
-                  <div style={{ fontSize:26, fontWeight:700, color:S.text, lineHeight:1 }}>
+                  <div style={{ fontSize:26, fontWeight:700, color:currentTheme.text, lineHeight:1 }}>
                     {value}
                   </div>
-                  <div style={{ fontSize:11, color:S.muted, marginTop:4 }}>{label}</div>
+                  <div style={{ fontSize:11, color:currentTheme.muted, marginTop:4 }}>{label}</div>
                 </div>
               </div>
             ))}
@@ -411,28 +498,23 @@ export default function Dashboard() {
               <div style={{ padding:"16px 20px 0",
                             display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
-                  <h2 style={{ margin:0, fontSize:14, fontWeight:700, color:S.text }}>
+                  <h2 style={{ margin:0, fontSize:14, fontWeight:700, color:currentTheme.text }}>
                      Your Recent Documents
                   </h2>
-                  <p style={{ margin:"2px 0 0", fontSize:11, color:S.muted }}>
+                  <p style={{ margin:"2px 0 0", fontSize:11, color:currentTheme.muted }}>
                     {documents.length} documents in your vault
                   </p>
                 </div>
-                {/* <button style={{ display:"flex", alignItems:"center", gap:4, fontSize:12,
-                                 color:S.accent, fontWeight:600, background:"none",
-                                 border:"none", cursor:"pointer" }}>
-                  View all <ArrowUpRight size={12} />
-                </button> */}
               </div>
 
               {/* Filter tabs */}
-              <div style={{ padding:"16px 20px 8px", borderBottom:`1px solid ${S.border}` }}>
+              <div style={{ padding:"16px 20px 8px", borderBottom:`1px solid ${currentTheme.border}` }}>
                 <FilterTabs activeFilter={filter} onChange={setFilter} counts={counts} />
               </div>
 
               {/* Document grid */}
               {loading ? (
-                <div style={{ padding:"40px", textAlign:"center", color:S.muted }}>
+                <div style={{ padding:"40px", textAlign:"center", color:currentTheme.muted }}>
                   Loading documents...
                 </div>
               ) : error ? (
@@ -459,7 +541,7 @@ export default function Dashboard() {
 
               {/* Upload widget */}
               <div style={{ ...card, padding:"16px 18px" }}>
-                <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:S.text }}>
+                <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:currentTheme.text }}>
                   Upload Document
                 </h3>
                 <input
@@ -479,22 +561,22 @@ export default function Dashboard() {
                   onDrop={handleDrop}
                   onClick={triggerFileInput}
                   style={{
-                    border:`2px dashed ${drag ? S.accent : S.border}`,
+                    border:`2px dashed ${drag ? currentTheme.accent : currentTheme.border}`,
                     borderRadius:10, padding:"22px 14px", textAlign:"center",
-                    background: drag ? S.accentLight : "#FAFBFC",
+                    background: drag ? currentTheme.accentLight : (isDarkMode ? "#202330" : "#FAFBFC"),
                     cursor:"pointer", transition:"all 0.2s",
                   }}>
-                  <div style={{ width:40, height:40, borderRadius:10, background:S.accentLight,
+                  <div style={{ width:40, height:40, borderRadius:10, background:currentTheme.accentLight,
                                 margin:"0 auto 10px",
                                 display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <Upload size={18} color={S.accent} />
+                    <Upload size={18} color={currentTheme.accent} />
                   </div>
-                  <p style={{ margin:"0 0 3px", fontSize:13, fontWeight:600, color:S.text }}>
+                  <p style={{ margin:"0 0 3px", fontSize:13, fontWeight:600, color:currentTheme.text }}>
                     {uploading ? "Uploading PDF..." : "Drop PDF here"}
                   </p>
-                  <p style={{ margin:0, fontSize:12, color:S.muted }}>
+                  <p style={{ margin:0, fontSize:12, color:currentTheme.muted }}>
                     or{" "}
-                    <span style={{ color:S.accent, fontWeight:600, cursor:"pointer" }}>
+                    <span style={{ color:currentTheme.accent, fontWeight:600, cursor:"pointer" }}>
                       browse files
                     </span>
                   </p>
@@ -508,10 +590,10 @@ export default function Dashboard() {
               <div style={{ ...card, padding:"16px 18px", flex:1 }}>
                 <div style={{ display:"flex", justifyContent:"space-between",
                               alignItems:"center", marginBottom:14 }}>
-                  <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:S.text }}>
+                  <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:currentTheme.text }}>
                     Recent Activity
                   </h3>
-                  <button style={{ fontSize:11, color:S.accent, fontWeight:600,
+                  <button style={{ fontSize:11, color:currentTheme.accent, fontWeight:600,
                                    background:"none", border:"none", cursor:"pointer" }}>
                     Full log →
                   </button>
@@ -520,7 +602,7 @@ export default function Dashboard() {
                 {/* Timeline */}
                 <div style={{ display:"flex", flexDirection:"column" }}>
                   {sortedActivities.length === 0 ? (
-                    <div style={{ fontSize:12, color:S.muted, textAlign:"center", padding:"20px 0" }}>
+                    <div style={{ fontSize:12, color:currentTheme.muted, textAlign:"center", padding:"20px 0" }}>
                       No recent activity yet!
                     </div>
                   ) : (
@@ -528,20 +610,20 @@ export default function Dashboard() {
                       <div key={i} style={{ display:"flex", gap:10, position:"relative" }}>
                         {i < sortedActivities.length - 1 && (
                           <div style={{ position:"absolute", left:11, top:22, bottom:-4,
-                                        width:1, background:S.border }} />
+                                        width:1, background:currentTheme.border }} />
                         )}
                         <div style={{ width:22, height:22, borderRadius:"50%",
-                                      background:S.accentLight, flexShrink:0, marginTop:2,
+                                      background:currentTheme.accentLight, flexShrink:0, marginTop:2,
                                       display:"flex", alignItems:"center", justifyContent:"center",
                                       zIndex:1 }}>
-                          <ShieldCheck size={11} color={S.accent} />
+                          <ShieldCheck size={11} color={currentTheme.accent} />
                         </div>
                         <div style={{ paddingBottom: i < sortedActivities.length - 1 ? 14 : 0, flex:1 }}>
-                          <p style={{ margin:0, fontSize:12, color:S.text, lineHeight:1.5 }}>
+                          <p style={{ margin:0, fontSize:12, color:currentTheme.text, lineHeight:1.5 }}>
                             <span style={{ fontWeight:500 }}>{item.label}</span>{" "}
-                            <span style={{ color:S.accent, fontWeight:600 }}>"{item.doc}"</span>
+                            <span style={{ color:currentTheme.accent, fontWeight:600 }}>"{item.doc}"</span>
                           </p>
-                          <p style={{ margin:"2px 0 0", fontSize:10, color:S.muted }}>{item.time}</p>
+                          <p style={{ margin:"2px 0 0", fontSize:10, color:currentTheme.muted }}>{item.time}</p>
                         </div>
                       </div>
                     ))
@@ -564,27 +646,27 @@ export default function Dashboard() {
           zIndex: 1000, padding: "20px",
         }}>
           <div style={{
-            background: "#fff",
+            background: isDarkMode ? "#1A1D2B" : "#fff",
             borderRadius: 16,
             width: "100%",
             maxWidth: 1200,
             height: "90vh",
             display: "flex",
             flexDirection: "column",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+            boxShadow: isDarkMode ? "0 10px 40px rgba(0,0,0,0.5)" : "0 10px 30px rgba(0,0,0,0.25)",
             overflow: "hidden"
           }}>
             {/* Modal Header */}
             <div style={{
               padding: "16px 24px",
-              borderBottom: `1px solid ${S.border}`,
+              borderBottom: `1px solid ${currentTheme.border}`,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              background: "#FAFBFD"
+              background: isDarkMode ? "#141622" : "#FAFBFD"
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: S.text }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: currentTheme.text }}>
                   Document Workspace — {activeDoc.originalName || activeDoc.filename}
                 </h3>
               </div>
@@ -596,7 +678,7 @@ export default function Dashboard() {
                   fontSize: 14,
                   fontWeight: 600,
                   cursor: "pointer",
-                  color: S.muted,
+                  color: currentTheme.muted,
                   padding: 8,
                 }}
               >

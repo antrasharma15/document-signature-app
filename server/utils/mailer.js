@@ -35,4 +35,74 @@ const sendSigningLink = async (toEmail, signingUrl, documentName) => {
   await transporter.sendMail(mailOptions);
 };
 
-module.exports = { sendSigningLink };
+const sendVerificationEmail = async (toEmail, verifyUrl, name) => {
+  const mailOptions = {
+    from: `"EASYsign" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: "Verify your EASYsign account",
+    html: `
+      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+        <div style="background: #3D4127; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+          <h2 style="color: white; margin: 0; font-size: 20px;">Verify your email</h2>
+        </div>
+        <div style="background: #f9f9f7; padding: 32px; border-radius: 0 0 12px 12px; border: 1px solid #e5e5e0;">
+          <p style="color: #3D4127; font-size: 15px;">Hi ${name},</p>
+          <p style="color: #555; font-size: 14px; line-height: 1.6;">
+            Thanks for creating an EASYsign account. Click the button below to verify
+            your email address. This link expires in <strong>24 hours</strong>.
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${verifyUrl}"
+               style="display: inline-block; background: #3D4127; color: white;
+                      padding: 14px 32px; border-radius: 8px; text-decoration: none;
+                      font-weight: 600; font-size: 15px;">
+              Verify Email Address
+            </a>
+          </div>
+          <p style="color: #999; font-size: 12px; margin-top: 24px;">
+            If you didn't create an account, you can safely ignore this email.
+            This link will expire after 24 hours.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+  await transporter.sendMail(mailOptions);
+};
+
+const sendPasswordResetEmail = async (toEmail, resetUrl, name) => {
+  const mailOptions = {
+    from: `"EASYsign" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: "Reset your EASYsign password",
+    html: `
+      <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+        <div style="background: #3D4127; padding: 24px 32px; border-radius: 12px 12px 0 0;">
+          <h2 style="color: white; margin: 0; font-size: 20px;">Reset your password</h2>
+        </div>
+        <div style="background: #f9f9f7; padding: 32px; border-radius: 0 0 12px 12px; border: 1px solid #e5e5e0;">
+          <p style="color: #3D4127; font-size: 15px;">Hi ${name},</p>
+          <p style="color: #555; font-size: 14px; line-height: 1.6;">
+            We received a request to reset your password. Click the button below
+            to choose a new one. This link expires in <strong>15 minutes</strong>.
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetUrl}"
+               style="display: inline-block; background: #3D4127; color: white;
+                      padding: 14px 32px; border-radius: 8px; text-decoration: none;
+                      font-weight: 600; font-size: 15px;">
+              Reset Password
+            </a>
+          </div>
+          <p style="color: #999; font-size: 12px; margin-top: 24px;">
+            If you didn't request a password reset, you can safely ignore this email.
+            Your password will not change. This link expires in 15 minutes.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+  await transporter.sendMail(mailOptions);
+};
+
+module.exports = { sendSigningLink, sendVerificationEmail, sendPasswordResetEmail };
