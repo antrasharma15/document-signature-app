@@ -1,21 +1,58 @@
 const nodemailer = require("nodemailer");
 
-// For development, we use Gmail.
-// In production, swap this for SendGrid / Resend / AWS SES.
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "465", 10),
-  secure: process.env.SMTP_SECURE === "true" || (!process.env.SMTP_SECURE && (process.env.SMTP_PORT === "465" || !process.env.SMTP_PORT)),
-  family: parseInt(process.env.SMTP_FAMILY || "4", 10),
-  auth: {
-    user: process.env.EMAIL_USER,   // your gmail address
-    pass: process.env.EMAIL_PASS,   // gmail app password (not your login password)
-  },
-});
+// ── Initialize SMTP transporter only if Resend is not configured ──────────────
+let transporter = null;
+if (!process.env.RESEND_API_KEY) {
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT || "465", 10),
+    secure: process.env.SMTP_SECURE === "true" || (!process.env.SMTP_SECURE && (process.env.SMTP_PORT === "465" || !process.env.SMTP_PORT)),
+    family: parseInt(process.env.SMTP_FAMILY || "4", 10),
+    auth: {
+      user: process.env.EMAIL_USER,   // your gmail address
+      pass: process.env.EMAIL_PASS,   // gmail app password (not your login password)
+    },
+  });
+}
+
+// ── Generic Send Mail Helper (Resend HTTP / SMTP) ─────────────────────────────
+const sendMailHelper = async (mailOptions) => {
+  if (process.env.RESEND_API_KEY) {
+    const from = process.env.EMAIL_FROM || "onboarding@resend.dev";
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP ${response.status}`);
+    }
+    console.log(` Email sent to ${mailOptions.to} via Resend — MessageId: ${data.id}`);
+    return data;
+  }
+
+  // SMTP Fallback
+  if (!transporter) {
+    throw new Error("Transporter not initialized");
+  }
+  const info = await transporter.sendMail(mailOptions);
+  console.log(` Email sent to ${mailOptions.to} — MessageId: ${info.messageId}`);
+  return info;
+};
 
 const sendSigningLink = async (toEmail, signingUrl, documentName) => {
   const mailOptions = {
-    from: `"DocSign App" <${process.env.EMAIL_USER}>`,
+    from: process.env.EMAIL_FROM || `"DocSign App" <${process.env.EMAIL_USER}>`,
     to: toEmail,
     subject: `You have a document to sign: ${documentName}`,
     html: `
@@ -35,12 +72,12 @@ const sendSigningLink = async (toEmail, signingUrl, documentName) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMailHelper(mailOptions);
 };
 
 const sendVerificationEmail = async (toEmail, verifyUrl, name) => {
   const mailOptions = {
-    from: `"EASYsign" <${process.env.EMAIL_USER}>`,
+    from: process.env.EMAIL_FROM || `"EASYsign" <${process.env.EMAIL_USER}>`,
     to: toEmail,
     subject: "Verify your EASYsign account",
     html: `
@@ -70,12 +107,12 @@ const sendVerificationEmail = async (toEmail, verifyUrl, name) => {
       </div>
     `,
   };
-  await transporter.sendMail(mailOptions);
+  await sendMailHelper(mailOptions);
 };
 
 const sendPasswordResetEmail = async (toEmail, resetUrl, name) => {
   const mailOptions = {
-    from: `"EASYsign" <${process.env.EMAIL_USER}>`,
+    from: process.env.EMAIL_FROM || `"EASYsign" <${process.env.EMAIL_USER}>`,
     to: toEmail,
     subject: "Reset your EASYsign password",
     html: `
@@ -105,7 +142,7 @@ const sendPasswordResetEmail = async (toEmail, resetUrl, name) => {
       </div>
     `,
   };
-  await transporter.sendMail(mailOptions);
+  await sendMailHelper(mailOptions);
 };
 
 module.exports = { sendSigningLink, sendVerificationEmail, sendPasswordResetEmail };
