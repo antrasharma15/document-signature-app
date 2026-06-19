@@ -3,7 +3,10 @@ const nodemailer = require("nodemailer");
 // For development, we use Gmail.
 // In production, swap this for SendGrid / Resend / AWS SES.
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "465", 10),
+  secure: process.env.SMTP_SECURE === "true" || (!process.env.SMTP_SECURE && (process.env.SMTP_PORT === "465" || !process.env.SMTP_PORT)),
+  family: parseInt(process.env.SMTP_FAMILY || "4", 10),
   auth: {
     user: process.env.EMAIL_USER,   // your gmail address
     pass: process.env.EMAIL_PASS,   // gmail app password (not your login password)

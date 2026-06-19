@@ -7,12 +7,16 @@ const nodemailer = require("nodemailer");
 
 // ── Create reusable transporter ───────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "465", 10),
+  secure: process.env.SMTP_SECURE === "true" || (!process.env.SMTP_SECURE && (process.env.SMTP_PORT === "465" || !process.env.SMTP_PORT)),
+  family: parseInt(process.env.SMTP_FAMILY || "4", 10),
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS, // Gmail App Password (16 chars)
   },
 });
+
 
 // ── Verify connection on server start ─────────────────────────────────────────
 transporter.verify((error) => {
