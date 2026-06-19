@@ -2,8 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 
-// ⚠️  Verify the file extensions match what's in your src/assets folder
-// If they're .jpg or .jpeg, change the extensions below accordingly
+
 import dashboardImg from "../assets/dashboard.jpeg";
 import signingWorkspaceImg from "../assets/signing workspace.jpeg";
 import auditTrailImg from "../assets/audit trail.jpeg";
@@ -490,7 +489,7 @@ function ProductShowcase() {
 // ─── features ─────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: FileSignature, title: "Secure SignaturesSignatures", desc: "Draw or upload a signature and embed it directly into the document at the exact position you place it." },
+  { icon: FileSignature, title: "Secure Signatures", desc: "Draw or upload a signature and embed it directly into the document at the exact position you place it." },
   { icon: Users, title: "Tokenized Signing Links", desc: "Send a secure, time-limited link to a signer — no account required on their end." },
   { icon: Activity, title: "Real-Time Status Tracking", desc: "Watch documents move from pending to signed or rejected, the moment it happens." },
   { icon: ShieldCheck, title: "Audit Trail & Activity Logs", desc: "Every view, sign, and rejection is logged with a timestamp and IP for full traceability." },
@@ -878,7 +877,7 @@ function FinalCTA() {
               document signing?
             </h2>
             <p className="mx-auto mt-4 max-w-md text-[15px] text-[#BAC095]">
-              Join today and experience the simplicity of Signaturessignatures.
+              Join today and experience the simplicity of electronic signatures.
             </p>
             <button
               onClick={handleGetStarted}

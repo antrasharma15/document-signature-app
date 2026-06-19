@@ -1,6 +1,6 @@
 /**
  * server/routes/signatures.js
- * Day 7 update — email notifications added to all routes
+ * Signatures management and finalization routes
  */
 
 const express   = require("express");
@@ -9,8 +9,8 @@ const { PDFDocument } = require("pdf-lib");
 const fs        = require("fs");
 const path      = require("path");
 const Signature = require("../models/Signature");
-const Document  = require("../models/Document");   // your existing Document model
-const User      = require("../models/User");        // your existing User model
+const Document  = require("../models/Document");
+const User      = require("../models/User");
 const protect   = require("../middleware/authMiddleware");
 const sendEmail = require("../utils/SendEmail");
 const {
@@ -570,7 +570,7 @@ router.post("/sign/:token", async (req, res) => {
       metadata: { page: sig.page, x: sig.x, y: sig.y },
     });
 
-    // Update document status to "signed" (was "pending" — that was wrong)
+    // Update parent document status to signed
     await Document.findByIdAndUpdate(signingToken.documentId, {
       status: "signed",
     });
@@ -625,26 +625,6 @@ router.post("/reject/:token", async (req, res) => {
     res.status(200).json({ message: "Document rejected" });
   } catch (err) {
     res.status(500).json({ message: "Failed to reject document", error: err.message });
-  }
-});
-
-// GET /api/audit/:docId
-// Returns full audit trail for a document — owner only
-router.get("/:docId", protect, async (req, res) => {
-  try {
-    const doc = await Document.findById(req.params.docId);
-    if (!doc) return res.status(404).json({ message: "Document not found" });
-
-    // Only the document owner can view the audit trail
-    if (doc.userId.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: "Not authorized" });
-
-    const logs = await AuditLog.find({ documentId: req.params.docId })
-      .sort({ createdAt: 1 }); // oldest first — reads like a timeline
-
-    res.status(200).json({ logs });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch audit trail", error: err.message });
   }
 });
 

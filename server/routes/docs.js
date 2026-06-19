@@ -1,9 +1,6 @@
 /**
  * server/routes/docs.js
- * Day 7 update — send email to signer when document is uploaded
- *
- * Only the upload (POST) route is shown below.
- * Merge this logic into your existing docs route file.
+ * Document management routes (upload, list, details, delete)
  */
 
 const express  = require("express");
@@ -32,7 +29,7 @@ const getClientOrigin = (req) => {
   return process.env.CLIENT_URL || CLIENT_URL;
 };
 
-// ── Multer config (same as your existing setup) ───────────────────────────────
+// Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename:    (req, file, cb) =>
@@ -122,10 +119,9 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /api/docs  — fetch all docs for logged-in user (unchanged)
-// GET /api/docs/:id — fetch single doc (unchanged)
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
+// Fetch all documents for the logged-in user
+// ──────────────────────────────────────────────────────────────────────────
 router.get("/", protect, async (req, res) => {
   try {
     const docs = await Document.find({ uploadedBy: req.user._id })

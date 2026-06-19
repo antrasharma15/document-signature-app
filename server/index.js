@@ -15,7 +15,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const fs = require('fs');
 
-// ✅ Serve uploaded files as static
+// Serve uploaded files as static assets
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -25,21 +25,20 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Routes
 const authRoutes = require('./routes/auth');
-const docRoutes = require('./routes/docs');        // ✅ Add this
+const docRoutes = require('./routes/docs');
 const signatureRoutes = require('./routes/signatures');
 const auditRoutes = require('./routes/audit');
 
 app.use('/api/auth', authRoutes);
-app.use('/api/docs', docRoutes);                   // ✅ Add this
+app.use('/api/docs', docRoutes);
 app.use('/api/signatures', signatureRoutes);
 app.use('/api/audit', auditRoutes);
 
-app.get('/', (req, res) => res.send('Server is running ✅'));
+app.get('/', (req, res) => res.send('Server status: OK'));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
-    console.log('MongoDB connected ✅');
+    console.log('MongoDB connected successfully');
     app.listen(5000, () => console.log('Server running on port 5000'));
   })
-  .catch(err => console.log(err));
-// Trigger nodemon reload - updated IP config & dynamic client URL flow
+  .catch(err => console.log(err));
