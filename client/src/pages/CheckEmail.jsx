@@ -7,7 +7,7 @@ export default function CheckEmail() {
   const location = useLocation();
   const email = location.state?.email || '';
 
-  const [resent, setResent] = useState(false);
+  const [resent, setResent] = useState(true);
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState('');
 
