@@ -7,6 +7,7 @@ const express  = require("express");
 const router   = express.Router();
 const multer   = require("multer");
 const path     = require("path");
+const fs       = require("fs");
 const Document = require("../models/Document");
 const User     = require("../models/User");
 const protect  = require("../middleware/authMiddleware");
@@ -64,7 +65,17 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
       return res.status(400).json({ message: "Invalid signer email address" });
     }
 
-    // Save document record
+    // Convert file to base64 and clean up local temp file
+    let fileData = null;
+    try {
+      if (fs.existsSync(req.file.path)) {
+        fileData = fs.readFileSync(req.file.path).toString("base64");
+      }
+    } catch (readErr) {
+      console.error("Failed to read uploaded file to base64:", readErr.message);
+    }
+
+    // Save document record with fileData
     const document = await Document.create({
       originalName: req.file.originalname,
       filename:     req.file.filename,
@@ -72,7 +83,19 @@ router.post("/upload", protect, upload.single("file"), async (req, res) => {
       uploadedBy:   req.user._id,
       fileSize:     req.file.size,
       signerEmail:  signerEmail || null,
+      fileData:     fileData,
     });
+
+    // Clean up local temp file as we now store it in the database
+    if (req.file.path) {
+      try {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (unlinkErr) {
+        console.error("Failed to delete temp file:", unlinkErr.message);
+      }
+    }
 
     await logAudit({
       documentId: document._id,

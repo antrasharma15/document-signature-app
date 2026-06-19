@@ -240,12 +240,17 @@ router.post("/finalize/:docId", protect, async (req, res) => {
       return res.status(400).json({ message: "No signatures found for this document" });
     }
 
-    // 3. Read the original PDF from disk
-    const pdfPath = path.resolve(doc.filePath);
-    if (!fs.existsSync(pdfPath)) {
-      return res.status(404).json({ message: "Original PDF file not found on disk" });
+    // 3. Read the original PDF
+    let existingPdfBytes;
+    if (doc.fileData) {
+      existingPdfBytes = Buffer.from(doc.fileData, "base64");
+    } else {
+      const pdfPath = path.resolve(doc.filePath);
+      if (!fs.existsSync(pdfPath)) {
+        return res.status(404).json({ message: "Original PDF file not found on disk" });
+      }
+      existingPdfBytes = fs.readFileSync(pdfPath);
     }
-    const existingPdfBytes = fs.readFileSync(pdfPath);
 
     // 4. Load it into pdf-lib
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
@@ -323,12 +328,21 @@ router.post("/finalize/:docId", protect, async (req, res) => {
     // 6. Serialize the modified PDF to bytes
     const signedPdfBytes = await pdfDoc.save();
 
-    // 7. Save to disk as a new file: signed_<originalfilename>
+    // 7. Save base64 version to document in MongoDB
+    doc.signedFileData = Buffer.from(signedPdfBytes).toString("base64");
+    doc.status = "signed";
+    await doc.save();
+
+    // 8. Also save to disk as a fallback for local development
     const signedFilename = `signed_${doc.filename || doc.fileName}`;
     const signedFilePath = path.join("uploads", signedFilename);
-    fs.writeFileSync(signedFilePath, signedPdfBytes);
+    try {
+      fs.writeFileSync(signedFilePath, signedPdfBytes);
+    } catch (writeErr) {
+      console.warn("Local signed file write skipped/failed:", writeErr.message);
+    }
 
-    // 8. Respond with the path so frontend can download it
+    // 9. Respond with the download URL
     res.status(200).json({
       message: "PDF signed successfully",
       signedFile: signedFilename,
@@ -352,28 +366,32 @@ router.get("/download/:filename", protect, async (req, res) => {
       return res.status(400).json({ message: "Invalid filename" });
     }
 
-    const filePath = path.resolve("uploads", filename);
-
-    // Security check: make sure the file actually exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: "Signed file not found" });
-    }
-
-    // Set headers so browser downloads it instead of opening it
+    // Setup headers
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${filename}"`
     );
 
-    // Stream the file to the response
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    // Try serving signed PDF from DB first
+    const coreFileName = filename.startsWith("signed_") ? filename.replace("signed_", "") : filename;
+    const doc = await Document.findOne({ $or: [{ fileName: coreFileName }, { filename: coreFileName }] });
+
+    if (doc && filename.startsWith("signed_") && doc.signedFileData) {
+      const fileBytes = Buffer.from(doc.signedFileData, "base64");
+      res.send(fileBytes);
+    } else {
+      // Fallback: stream file from local uploads directory
+      const filePath = path.resolve("uploads", filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Signed file not found" });
+      }
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    }
 
     // Audit download action
     try {
-      const coreFileName = filename.startsWith("signed_") ? filename.replace("signed_", "") : filename;
-      const doc = await Document.findOne({ $or: [{ fileName: coreFileName }, { filename: coreFileName }] });
       if (doc) {
         await logAudit({
           documentId: doc._id,

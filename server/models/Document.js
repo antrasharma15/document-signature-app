@@ -35,6 +35,14 @@ const documentSchema = new mongoose.Schema({
   rejectionReason: {
     type: String,
     default: null
+  },
+  fileData: {
+    type: String,
+    default: null
+  },
+  signedFileData: {
+    type: String,
+    default: null
   }
 }, { timestamps: true });
 
