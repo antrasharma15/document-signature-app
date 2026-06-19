@@ -19,6 +19,7 @@ const validator = require("validator");
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 const getClientOrigin = (req) => {
+  if (process.env.CLIENT_URL) return process.env.CLIENT_URL;
   const origin = req.get("origin");
   if (origin && origin !== "null") return origin;
   const referer = req.get("referer");
@@ -27,7 +28,7 @@ const getClientOrigin = (req) => {
       return new URL(referer).origin;
     } catch (_) {}
   }
-  return process.env.CLIENT_URL || CLIENT_URL;
+  return CLIENT_URL;
 };
 
 // Multer configuration for file uploads
