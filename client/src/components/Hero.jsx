@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import dashboardsnap from "../assets/dashboardsnap.jpeg";
+
+// ⚠️  Verify the file extensions match what's in your src/assets folder
+// If they're .jpg or .jpeg, change the extensions below accordingly
+import dashboardImg from "../assets/dashboard.jpeg";
+import signingWorkspaceImg from "../assets/signing workspace.jpeg";
+import auditTrailImg from "../assets/audit trail.jpeg";
+
 import {
   FileSignature,
   Users,
@@ -20,9 +26,11 @@ import {
   ChevronDown,
   ArrowRight,
   Play,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
-// shared tokens
+// ─── shared tokens ────────────────────────────────────────────────────────────
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -42,16 +50,12 @@ function SectionLabel({ children }) {
     </span>
   );
 }
-// animated signature stroke
+
+// ─── animated signature stroke ────────────────────────────────────────────────
 
 function SignatureStroke({ className = "" }) {
   return (
-    <svg
-      viewBox="0 0 420 120"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 420 120" fill="none" className={className} aria-hidden="true">
       <motion.path
         d="M10 90 C 40 30, 70 30, 90 70 C 110 110, 140 40, 165 60 C 190 80, 200 30, 230 50 C 260 70, 270 100, 300 60 C 330 20, 350 90, 410 40"
         stroke="url(#sigGradient)"
@@ -72,7 +76,7 @@ function SignatureStroke({ className = "" }) {
   );
 }
 
-//navigation
+// ─── navigation ───────────────────────────────────────────────────────────────
 
 function NavBar() {
   const [scrolled, setScrolled] = useState(false);
@@ -92,8 +96,7 @@ function NavBar() {
       initial={{ y: -40, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "py-3" : "py-5"
-        }`}
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "py-3" : "py-5"}`}
     >
       <div className="mx-auto max-w-7xl px-6">
         <div
@@ -102,7 +105,6 @@ function NavBar() {
             : "bg-transparent py-2"
             }`}
         >
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
             <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 to-green-600">
               <FileSignature className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
@@ -112,7 +114,6 @@ function NavBar() {
             </span>
           </Link>
 
-          {/* Links */}
           <nav className="hidden md:flex items-center gap-8">
             {links.map((l) => (
               <a
@@ -125,7 +126,6 @@ function NavBar() {
             ))}
           </nav>
 
-          {/* Auth buttons */}
           <div className="flex items-center gap-3">
             {token ? (
               <Link
@@ -159,22 +159,18 @@ function NavBar() {
   );
 }
 
-//hero section
+// ─── hero ─────────────────────────────────────────────────────────────────────
+
 function Hero() {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
     const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/dashboard");
-    } else {
-      navigate("/register");
-    }
+    navigate(token ? "/dashboard" : "/register");
   };
 
   return (
     <section className="relative overflow-hidden pt-36 pb-28 sm:pt-44 sm:pb-36">
-      {/* Background atmosphere */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[#BAC095]" />
         <div className="absolute -top-1/3 left-1/2 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-violet-400/25 blur-[140px]" />
@@ -199,7 +195,7 @@ function Hero() {
           <motion.div variants={fadeUp} className="mb-6 flex justify-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#BAC095] bg-[#BAC095]/20 px-4 py-1.5 text-[12.5px] font-medium text-[#3D4127]">
               <ShieldCheck className="h-3.5 w-3.5" />
-            Full audit trail on every document
+              Full audit trail on every document
             </span>
           </motion.div>
 
@@ -224,7 +220,10 @@ function Hero() {
             Upload documents, collect signatures, track status, and manage everything from one dashboard.
           </motion.p>
 
-          <motion.div variants={fadeUp} className="mt-9 flex flex-wrap items-center justify-center gap-4">
+          <motion.div
+            variants={fadeUp}
+            className="mt-9 flex flex-wrap items-center justify-center gap-4"
+          >
             <button
               onClick={handleGetStarted}
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 px-7 py-3.5 text-[14.5px] font-semibold text-white shadow-[0_8px_30px_-8px_rgba(168,85,247,0.6)] transition-transform hover:scale-[1.03] cursor-pointer"
@@ -247,23 +246,209 @@ function Hero() {
     </section>
   );
 }
-//Dashboard mockup
 
-function DashboardMockup({ interactive = false }) {
+// ─── screenshot carousel ──────────────────────────────────────────────────────
+
+const SLIDES = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    badge: "Overview",
+    desc: "See all your documents at a glance — pending, signed, and rejected — with real-time status updates.",
+    img: dashboardImg,
+  },
+  {
+    id: "signing",
+    label: "Signing Workspace",
+    badge: "Sign",
+    desc: "Draw or upload a signature and place it precisely on the document before submitting.",
+    img: signingWorkspaceImg,
+  },
+  {
+    id: "audit",
+    label: "Audit Trail",
+    badge: "Logs",
+    desc: "Every view, signature, and rejection is timestamped and logged — full traceability on every document.",
+    img: auditTrailImg,
+  },
+];
+
+const SLIDE_INTERVAL = 4000; // ms
+
+function ScreenshotCarousel() {
+  const [active, setActive] = useState(0);
+  const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
+  const timerRef = useRef(null);
+
+  const goTo = (index, dir) => {
+    setDirection(dir ?? (index > active ? 1 : -1));
+    setActive(index);
+  };
+
+  const prev = () => {
+    const next = (active - 1 + SLIDES.length) % SLIDES.length;
+    goTo(next, -1);
+  };
+
+  const next = () => {
+    const next = (active + 1) % SLIDES.length;
+    goTo(next, 1);
+  };
+
+  // auto-advance
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setActive((prev) => (prev + 1) % SLIDES.length);
+      setDirection(1);
+    }, SLIDE_INTERVAL);
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  // reset timer on manual interaction
+  const manualGoTo = (index) => {
+    clearInterval(timerRef.current);
+    goTo(index);
+    timerRef.current = setInterval(() => {
+      setActive((prev) => (prev + 1) % SLIDES.length);
+      setDirection(1);
+    }, SLIDE_INTERVAL);
+  };
+
+  const slide = SLIDES[active];
+
+  const variants = {
+    enter: (dir) => ({ x: dir > 0 ? 60 : -60, opacity: 0 }),
+    center: { x: 0, opacity: 1, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+    exit: (dir) => ({ x: dir > 0 ? -60 : 60, opacity: 0, transition: { duration: 0.3, ease: "easeIn" } }),
+  };
+
   return (
-    <div className="rounded-2xl border border-[#3D4127]/15 bg-white/70 p-2 shadow-[0_30px_100px_-20px_rgba(61,65,39,0.15)] backdrop-blur-2xl">
-      <div className="rounded-xl border border-[#3D4127]/10 overflow-hidden bg-white">
-        <img
-          src={dashboardsnap}
-          alt="EASYsign Dashboard Screenshot"
-          className="w-full h-auto object-cover block"
-        />
+    <div className="flex flex-col gap-6">
+      {/* Tab pills */}
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        {SLIDES.map((s, i) => (
+          <button
+            key={s.id}
+            onClick={() => manualGoTo(i)}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-all duration-300 cursor-pointer ${active === i
+              ? "bg-[#3D4127] text-white shadow-md"
+              : "bg-white/50 text-[#3D4127]/70 border border-[#BAC095] hover:bg-white/70"
+              }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-green-400" : "bg-[#3D4127]/30"
+                }`}
+            />
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Caption */}
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.p
+          key={`caption-${active}`}
+          custom={direction}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3 }}
+          className="text-center text-[14px] text-[#3D4127]/75 max-w-xl mx-auto leading-relaxed"
+        >
+          {slide.desc}
+        </motion.p>
+      </AnimatePresence>
+
+      {/* Image frame */}
+      <div className="relative rounded-2xl border border-[#3D4127]/15 bg-white/70 p-2 shadow-[0_30px_100px_-20px_rgba(61,65,39,0.15)] backdrop-blur-2xl">
+        {/* Browser chrome bar */}
+        <div className="rounded-t-xl border border-[#3D4127]/10 bg-[#f0f0eb] px-4 py-2.5 flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-red-400/80" />
+          <span className="h-3 w-3 rounded-full bg-yellow-400/80" />
+          <span className="h-3 w-3 rounded-full bg-green-400/80" />
+          <div className="mx-auto flex items-center gap-2 rounded-full bg-white/60 border border-[#3D4127]/10 px-3 py-0.5">
+            <Lock className="h-3 w-3 text-[#3D4127]/50" />
+            <span className="text-[11px] text-[#3D4127]/50 font-medium">easysign.app</span>
+          </div>
+          <span className="w-14" /> {/* balance */}
+        </div>
+
+        {/* Slide image */}
+        <div className="relative overflow-hidden rounded-b-xl border border-t-0 border-[#3D4127]/10 bg-white" style={{ minHeight: "360px" }}>
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.img
+              key={`slide-${active}`}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              src={slide.img}
+              alt={`EASYsign ${slide.label}`}
+              className="w-full h-auto object-cover block"
+            />
+          </AnimatePresence>
+
+          {/* Badge on image */}
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={`badge-${active}`}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.3 }}
+              className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-[#3D4127]/80 backdrop-blur-sm px-3 py-1 text-[11.5px] font-semibold text-[#BAC095]"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              {slide.badge}
+            </motion.span>
+          </AnimatePresence>
+
+          {/* Prev / Next arrows */}
+          <button
+            onClick={() => { clearInterval(timerRef.current); prev(); }}
+            className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 border border-[#3D4127]/10 shadow text-[#3D4127] hover:bg-white transition-colors cursor-pointer"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => { clearInterval(timerRef.current); next(); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 border border-[#3D4127]/10 shadow text-[#3D4127] hover:bg-white transition-colors cursor-pointer"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Progress dots */}
+      <div className="flex items-center justify-center gap-2">
+        {SLIDES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => manualGoTo(i)}
+            aria-label={`Go to slide ${i + 1}`}
+            className="cursor-pointer"
+          >
+            <motion.span
+              animate={{
+                width: active === i ? 24 : 8,
+                backgroundColor: active === i ? "#3D4127" : "#BAC09580",
+              }}
+              transition={{ duration: 0.3 }}
+              className="block h-2 rounded-full"
+              style={{ width: active === i ? 24 : 8, backgroundColor: active === i ? "#3D4127" : "#BAC09580" }}
+            />
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-//product showcase
+// ─── product showcase ─────────────────────────────────────────────────────────
+
 function ProductShowcase() {
   return (
     <section id="solutions" className="relative py-28">
@@ -273,7 +458,7 @@ function ProductShowcase() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-100px" }}
-          className="mx-auto max-w-2xl text-center mb-16"
+          className="mx-auto max-w-2xl text-center mb-14"
         >
           <motion.div variants={fadeUp}>
             <SectionLabel>Inside EASYsign</SectionLabel>
@@ -285,8 +470,7 @@ function ProductShowcase() {
             One dashboard for every document, signer, and signature.
           </motion.h2>
           <motion.p variants={fadeUp} className="mt-4 text-[#3D4127]/80 text-[15px]">
-            Upload, send, and track documents in real time — see exactly who's
-            signed, who's pending, and what happened, when?
+            Upload, send, and track documents in real time — see exactly who's signed, who's pending, and what happened, when.
           </motion.p>
         </motion.div>
 
@@ -296,18 +480,17 @@ function ProductShowcase() {
           whileInView="show"
           viewport={{ once: true, margin: "-100px" }}
         >
-          <DashboardMockup interactive />
+          <ScreenshotCarousel />
         </motion.div>
       </div>
     </section>
   );
 }
 
-//what features do we have in easysign platform!
-
+// ─── features ─────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: FileSignature, title: "Secure Digital Signatures", desc: "Draw or upload a signature and embed it directly into the document at the exact position you place it." },
+  { icon: FileSignature, title: "Secure SignaturesSignatures", desc: "Draw or upload a signature and embed it directly into the document at the exact position you place it." },
   { icon: Users, title: "Tokenized Signing Links", desc: "Send a secure, time-limited link to a signer — no account required on their end." },
   { icon: Activity, title: "Real-Time Status Tracking", desc: "Watch documents move from pending to signed or rejected, the moment it happens." },
   { icon: ShieldCheck, title: "Audit Trail & Activity Logs", desc: "Every view, sign, and rejection is logged with a timestamp and IP for full traceability." },
@@ -366,7 +549,7 @@ function Features() {
   );
 }
 
-//steps how it works?
+// ─── how it works ─────────────────────────────────────────────────────────────
 
 const STEPS = [
   { icon: Upload, title: "Upload Document", desc: "Drag in any PDF — contracts, offer letters, NDAs, or forms." },
@@ -398,7 +581,6 @@ function HowItWorks() {
         </motion.div>
 
         <div className="relative grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-          {/* connecting line */}
           <div className="absolute left-0 right-0 top-7 hidden h-px lg:block">
             <motion.div
               initial={{ scaleX: 0 }}
@@ -434,7 +616,8 @@ function HowItWorks() {
   );
 }
 
-//securrity of uploaded documents is our top priority!
+// ─── security ─────────────────────────────────────────────────────────────────
+
 const SECURITY_POINTS = [
   { icon: Lock, title: "Encrypted Connections", desc: "All traffic between your browser and the server runs over HTTPS." },
   { icon: Cloud, title: "Access-Controlled Storage", desc: "Uploaded documents are only accessible to their owner and authorized signers." },
@@ -452,7 +635,6 @@ function Security() {
 
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
-          {/* Animated shield illustration */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -487,7 +669,6 @@ function Security() {
             </motion.div>
           </motion.div>
 
-          {/* Content */}
           <motion.div
             variants={stagger}
             initial="hidden"
@@ -504,8 +685,7 @@ function Security() {
               Your documents, protected at every layer.
             </motion.h2>
             <motion.p variants={fadeUp} className="mt-3 text-[#3D4127]/80 text-[15px] max-w-md">
-              Security isn't a feature here — it's the foundation everything
-              else is built on.
+              Security isn't a feature here — it's the foundation everything else is built on.
             </motion.p>
 
             <div className="mt-8 space-y-4">
@@ -528,8 +708,7 @@ function Security() {
   );
 }
 
-
-//who can use our easysign platform?
+// ─── use cases ────────────────────────────────────────────────────────────────
 
 const USE_CASES = [
   { title: "Businesses", desc: "Send contracts and vendor agreements for fast remote signoff.", icon: FileStack },
@@ -589,10 +768,8 @@ function UseCases() {
   );
 }
 
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
 
-
-
-// what questions must arise before using EASYsign.
 const FAQS = [
   { q: "Do signers need to create an account?", a: "No. Signers receive a secure, time-limited link by email and can review and sign the document without registering for anything." },
   { q: "What happens to the original document?", a: "The original upload is kept on file, and a separate signed copy is generated with the signature embedded once the signer submits." },
@@ -601,6 +778,7 @@ const FAQS = [
   { q: "How is my signature added to the document?", a: "You can draw your signature or upload an image of it. It's placed exactly where you position it on the document before it's embedded into the final PDF." },
   { q: "Can I download the signed document?", a: "Yes. Once a document is signed, the owner can download the finalized PDF with the signature embedded." },
 ];
+
 function FAQ() {
   const [open, setOpen] = useState(0);
 
@@ -637,7 +815,7 @@ function FAQ() {
             >
               <button
                 onClick={() => setOpen(open === i ? -1 : i)}
-                className="flex w-full items-center justify-between px-5 py-4 text-left"
+                className="flex w-full items-center justify-between px-5 py-4 text-left cursor-pointer"
               >
                 <span className="text-[14px] font-medium text-[#3D4127]">{item.q}</span>
                 <motion.span
@@ -670,17 +848,14 @@ function FAQ() {
   );
 }
 
-// final call to action button
+// ─── final CTA ────────────────────────────────────────────────────────────────
+
 function FinalCTA() {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
     const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/dashboard");
-    } else {
-      navigate("/register");
-    }
+    navigate(token ? "/dashboard" : "/register");
   };
 
   return (
@@ -703,7 +878,7 @@ function FinalCTA() {
               document signing?
             </h2>
             <p className="mx-auto mt-4 max-w-md text-[15px] text-[#BAC095]">
-              Join today and experience the simplicity of digital signatures.
+              Join today and experience the simplicity of Signaturessignatures.
             </p>
             <button
               onClick={handleGetStarted}
@@ -719,7 +894,8 @@ function FinalCTA() {
   );
 }
 
-//footer section
+// ─── footer ───────────────────────────────────────────────────────────────────
+
 function Footer() {
   const columns = [
     { title: "Product", links: ["Features", "Security"] },
@@ -741,7 +917,7 @@ function Footer() {
               </span>
             </a>
             <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-[#3D4127]/70">
-               Document signing and management for anyone who needs a clear record of who signed what, and when.
+              Document signing and management for anyone who needs a clear record of who signed what, and when.
             </p>
           </div>
 
@@ -767,20 +943,14 @@ function Footer() {
           <p className="text-[12.5px] text-[#3D4127]/60">
             © {new Date().getFullYear()} EASYsign. All rights reserved.
           </p>
-          <div className="flex gap-5 text-[12.5px] text-[#3D4127]/60">
-            {/* <a href="#" className="hover:text-[#3D4127] transition-colors">Twitter</a>
-            <a href="#" className="hover:text-[#3D4127] transition-colors">LinkedIn</a>
-            <a href="#" className="hover:text-[#3D4127] transition-colors">GitHub</a> */}
-          </div>
+          <div className="flex gap-5 text-[12.5px] text-[#3D4127]/60" />
         </div>
       </div>
     </footer>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Page                                                                 */
-/* ------------------------------------------------------------------ */
+// ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
   return (
@@ -810,4 +980,3 @@ export default function Home() {
     </div>
   );
 }
-

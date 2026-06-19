@@ -36,7 +36,8 @@ router.post('/register', async (req, res) => {
       verificationTokenExpiry,
     });
 
-    const verifyUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+    const clientUrl = req.get("origin") || process.env.CLIENT_URL;
+    const verifyUrl = `${clientUrl}/verify-email/${verificationToken}`;
     console.log(`[DEV] Verification link: ${verifyUrl}`);
     sendVerificationEmail(user.email, verifyUrl, user.name).catch((err) => {
       console.error(`[DEV] Failed to send verification email:`, err.message);
@@ -151,7 +152,8 @@ router.post('/resend-verification', async (req, res) => {
     user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
 
-    const verifyUrl = `${process.env.CLIENT_URL}/verify-email/${user.verificationToken}`;
+    const clientUrl = req.get("origin") || process.env.CLIENT_URL;
+    const verifyUrl = `${clientUrl}/verify-email/${user.verificationToken}`;
     sendVerificationEmail(user.email, verifyUrl, user.name).catch((err) => {
       console.error(`[DEV] Failed to resend verification email:`, err.message);
     });
@@ -190,7 +192,8 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const clientUrl = req.get("origin") || process.env.CLIENT_URL;
+    const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
     console.log(`[DEV] Password reset link: ${resetUrl}`);
 
     sendPasswordResetEmail(user.email, resetUrl, user.name).catch((err) => {

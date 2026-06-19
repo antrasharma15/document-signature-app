@@ -52,7 +52,7 @@ export default function Sidebar() {
               EASYsign
             </div>
             <div style={{ color: currentTheme.muted, fontSize: 10, fontWeight: 500, marginTop: 1 }}>
-              Digital Signatures
+              Signatures Made Easy!
             </div>
           </div>
         </div>
