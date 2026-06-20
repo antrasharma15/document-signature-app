@@ -77,20 +77,20 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#BAC095] text-[#3D4127] antialiased flex items-center justify-center px-4">
+    <div className="relative min-h-screen overflow-hidden bg-[#F3F4F6] text-slate-900 antialiased flex items-center justify-center px-4">
       {/* Centered radial glow */}
-      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-400/30 blur-[150px]" />
+      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/20 blur-[150px]" />
 
       {/* Glassmorphism Card */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-[#BAC095] bg-white/60 p-8 backdrop-blur-lg shadow-2xl flex flex-col"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white/60 p-8 backdrop-blur-lg shadow-2xl flex flex-col"
       >
         {/* Badge */}
         <div className="flex justify-center mb-6">
-          <span className="rounded-full border border-[#3D4127]/20 bg-white/40 px-4 py-2 text-sm text-[#3D4127] font-semibold">
+          <span className="rounded-full border border-[#2563EB]/20 bg-[#2563EB]/10 px-4 py-2 text-sm text-[#2563EB] font-semibold">
             Welcome Back!
           </span>
         </div>
@@ -102,14 +102,14 @@ export default function Login() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl font-bold text-[#3D4127] tracking-tight">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
             Sign in to your account
           </h1>
-          <p className="mt-2 text-sm text-[#3D4127]/75">
+          <p className="mt-2 text-sm text-slate-600">
             Don't have an account?{' '}
             <Link
               to="/register"
-              className="text-violet-700 font-semibold hover:text-violet-600 transition duration-200"
+              className="text-[#2563EB] font-semibold hover:text-blue-700 transition duration-200"
             >
               Register here
             </Link>
@@ -150,7 +150,7 @@ export default function Login() {
           >
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+              className="block text-sm font-medium text-slate-700 mb-2"
             >
               Email
             </label>
@@ -165,10 +165,10 @@ export default function Login() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck="false"
-              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition duration-200 ${
                 errors.email
                   ? 'border-red-400 focus:border-red-500'
-                  : 'border-[#BAC095] focus:border-violet-600'
+                  : 'border-slate-200 focus:border-[#2563EB]'
               }`}
             />
             {/* Inline field error */}
@@ -185,7 +185,7 @@ export default function Login() {
           >
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+              className="block text-sm font-medium text-slate-700 mb-2"
             >
               Password
             </label>
@@ -197,16 +197,16 @@ export default function Login() {
               onChange={handleChange}
               placeholder="••••••••"
               autoComplete="current-password"  // tells browser: this is the password to save/autofill
-              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition duration-200 ${
                 errors.password
                   ? 'border-red-400 focus:border-red-500'
-                  : 'border-[#BAC095] focus:border-violet-600'
+                  : 'border-slate-200 focus:border-[#2563EB]'
               }`}
             />
             <div className="flex justify-end mt-1">
               <Link
                 to="/forgot-password"
-                className="text-xs text-violet-700 hover:text-violet-600 font-medium transition"
+                className="text-xs text-[#2563EB] hover:text-blue-600 font-medium transition"
               >
                 Forgot password?
               </Link>
@@ -225,7 +225,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full cursor-pointer rounded-xl bg-[#3D4127] py-3.5 font-semibold text-white hover:bg-[#3D4127]/90 transition duration-200 disabled:opacity-50"
+              className="w-full cursor-pointer rounded-xl bg-[#2563EB] py-3.5 font-semibold text-white hover:bg-blue-700 transition duration-200 disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>

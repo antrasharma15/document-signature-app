@@ -26,45 +26,45 @@ export default function CheckEmail() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#BAC095] flex items-center justify-center px-4">
-      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-400/30 blur-[150px]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#F3F4F6] flex items-center justify-center px-4">
+      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/20 blur-[150px]" />
 
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-[#BAC095] bg-white/60 p-10 backdrop-blur-lg shadow-2xl text-center"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white/60 p-10 backdrop-blur-lg shadow-2xl text-center"
       >
         {/* Icon */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#3D4127]/10"
+          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#2563EB]/10"
         >
-          <svg className="h-10 w-10 text-[#3D4127]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg className="h-10 w-10 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
           </svg>
         </motion.div>
 
-        <h1 className="text-2xl font-bold text-[#3D4127] tracking-tight">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           Check your email
         </h1>
 
-        <p className="mt-3 text-sm text-[#3D4127]/70 leading-relaxed">
+        <p className="mt-3 text-sm text-slate-600 leading-relaxed">
           We sent a verification link to{' '}
           {email && (
-            <span className="font-semibold text-[#3D4127]">{email}</span>
+            <span className="font-semibold text-slate-900">{email}</span>
           )}
           . Click the link in the email to activate your account.
         </p>
 
-        <p className="mt-2 text-xs text-[#3D4127]/50">
+        <p className="mt-2 text-xs text-slate-400">
           The link expires in 24 hours. Check your spam folder if you don't see it.
         </p>
 
         {/* Resend section */}
-        <div className="mt-8 border-t border-[#3D4127]/10 pt-6">
+        <div className="mt-8 border-t border-slate-200 pt-6">
           {resent ? (
             <motion.p
               initial={{ opacity: 0 }}
@@ -75,11 +75,11 @@ export default function CheckEmail() {
             </motion.p>
           ) : (
             <>
-              <p className="text-xs text-[#3D4127]/50 mb-3">Didn't receive the email?</p>
+              <p className="text-xs text-slate-400 mb-3">Didn't receive the email?</p>
               <button
                 onClick={handleResend}
                 disabled={resending || !email}
-                className="rounded-xl border border-[#3D4127]/20 bg-white/60 px-5 py-2.5 text-sm font-semibold text-[#3D4127] hover:bg-white/80 transition duration-200 disabled:opacity-50 cursor-pointer"
+                className="rounded-xl border border-slate-350 bg-white/60 px-5 py-2.5 text-sm font-semibold text-slate-800 hover:bg-white/80 transition duration-200 disabled:opacity-50 cursor-pointer"
               >
                 {resending ? 'Resending...' : 'Resend verification email'}
               </button>
@@ -90,9 +90,9 @@ export default function CheckEmail() {
           )}
         </div>
 
-        <p className="mt-6 text-xs text-[#3D4127]/40">
+        <p className="mt-6 text-xs text-slate-400">
           Wrong email?{' '}
-          <Link to="/register" className="text-violet-700 font-semibold hover:text-violet-600 transition">
+          <Link to="/register" className="text-[#2563EB] font-semibold hover:text-blue-700 transition">
             Register again
           </Link>
         </p>

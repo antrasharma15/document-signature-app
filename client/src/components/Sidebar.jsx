@@ -3,10 +3,10 @@ import { useAuth } from "../context/AuthContext";
 import { LayoutDashboard, Settings, LogOut, Pen } from "lucide-react";
 
 const S = {
-  sidebar: "#3D4127",   // Dark forest green
-  accent: "#636B2F",    // Medium moss green
-  text: "#3D4127",
-  muted: "#BAC095",     // Soft light green
+  sidebar: "#1E293B",   // Slate-800 dark sidebar
+  accent: "#2563EB",    // Primary Blue
+  text: "#F3F4F6",
+  muted: "#94A3B8",     // Slate-400
 };
 
 export default function Sidebar() {
@@ -25,10 +25,10 @@ export default function Sidebar() {
   ];
 
   const currentTheme = isDarkMode ? {
-    sidebar: "#0F111A",
-    accent: "#528E7E",
+    sidebar: "#0F172A", // Slate-900 darker sidebar
+    accent: "#3B82F6",  // Blue-500
     text: "#F3F4F6",
-    muted: "#9CA3AF",
+    muted: "#6B7280",
   } : S;
 
   const firstLetter = (user?.name || "U").substring(0, 1).toUpperCase();

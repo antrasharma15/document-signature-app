@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 
 
-import dashboardImg from "../assets/dashboard.jpeg";
+import dashboardImg from "../assets/dashboard.png";
 import signingWorkspaceImg from "../assets/signing workspace.jpeg";
 import auditTrailImg from "../assets/audit trail.jpeg";
 
@@ -43,8 +43,8 @@ const stagger = {
 
 function SectionLabel({ children }) {
   return (
-    <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-violet-700">
-      <span className="h-px w-6 bg-gradient-to-r from-violet-600 to-pink-600" />
+    <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-600">
+      <span className="h-px w-6 bg-gradient-to-r from-blue-600 to-indigo-600" />
       {children}
     </span>
   );
@@ -100,16 +100,16 @@ function NavBar() {
       <div className="mx-auto max-w-7xl px-6">
         <div
           className={`flex items-center justify-between rounded-2xl px-5 transition-all duration-300 ${scrolled
-            ? "bg-[#BAC095]/85 backdrop-blur-xl border border-[#3D4127]/10 py-2.5 shadow-[0_8px_30px_rgba(61,65,39,0.15)]"
+            ? "bg-[#F3F4F6]/85 backdrop-blur-xl border border-slate-200 py-2.5 shadow-[0_8px_30px_rgba(37,99,235,0.15)]"
             : "bg-transparent py-2"
             }`}
         >
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 to-green-600">
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[#2563EB]">
               <FileSignature className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
             </span>
-            <span className="text-[17px] font-semibold tracking-tight text-[#3D4127]">
-              EASY<span className="text-green-600">sign</span>
+            <span className="text-[17px] font-semibold tracking-tight text-slate-900">
+              EASY<span className="text-blue-600">sign</span>
             </span>
           </Link>
 
@@ -118,7 +118,7 @@ function NavBar() {
               <a
                 key={l}
                 href={`#${l.toLowerCase()}`}
-                className="text-[13.5px] font-medium text-[#3D4127]/80 hover:text-[#3D4127] transition-colors"
+                className="text-[13.5px] font-medium text-slate-900/80 hover:text-slate-900 transition-colors"
               >
                 {l}
               </a>
@@ -129,7 +129,7 @@ function NavBar() {
             {token ? (
               <Link
                 to="/dashboard"
-                className="group inline-flex items-center gap-1.5 rounded-full bg-[#3D4127] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-[#3D4127]/90"
+                className="group inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-[#2563EB]/90"
               >
                 Dashboard
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -138,13 +138,13 @@ function NavBar() {
               <>
                 <Link
                   to="/login"
-                  className="hidden sm:inline-block text-[13.5px] font-medium text-[#3D4127]/80 hover:text-[#3D4127] transition-colors"
+                  className="hidden sm:inline-block text-[13.5px] font-medium text-slate-900/80 hover:text-slate-900 transition-colors"
                 >
                   Log in
                 </Link>
                 <Link
                   to="/register"
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-[#3D4127] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-[#3D4127]/90"
+                  className="group inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-[#2563EB]/90"
                 >
                   Sign up
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -171,14 +171,14 @@ function Hero() {
   return (
     <section className="relative overflow-hidden pt-36 pb-28 sm:pt-44 sm:pb-36">
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[#BAC095]" />
-        <div className="absolute -top-1/3 left-1/2 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-violet-400/25 blur-[140px]" />
-        <div className="absolute top-1/4 right-0 h-[500px] w-[500px] rounded-full bg-pink-400/20 blur-[140px]" />
+        <div className="absolute inset-0 bg-[#F3F4F6]" />
+        <div className="absolute -top-1/3 left-1/2 h-[700px] w-[700px] -translate-x-1/2 rounded-full bg-blue-400/15 blur-[140px]" />
+        <div className="absolute top-1/4 right-0 h-[500px] w-[500px] rounded-full bg-indigo-400/10 blur-[140px]" />
         <div
           className="absolute inset-0 opacity-[0.2]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(61,65,39,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(61,65,39,0.06) 1px, transparent 1px)",
+              "linear-gradient(rgba(37,99,235,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.06) 1px, transparent 1px)",
             backgroundSize: "64px 64px",
           }}
         />
@@ -192,7 +192,7 @@ function Hero() {
           className="mx-auto max-w-3xl text-center"
         >
           <motion.div variants={fadeUp} className="mb-6 flex justify-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#BAC095] bg-[#BAC095]/20 px-4 py-1.5 text-[12.5px] font-medium text-[#3D4127]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#F3F4F6] bg-[#F3F4F6]/20 px-4 py-1.5 text-[12.5px] font-medium text-slate-900">
               <ShieldCheck className="h-3.5 w-3.5" />
               Full audit trail on every document
             </span>
@@ -200,7 +200,7 @@ function Hero() {
 
           <motion.h1
             variants={fadeUp}
-            className="font-display text-[2.75rem] sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight text-[#3D4127]"
+            className="font-display text-[2.75rem] sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight text-slate-900"
           >
             Sign, send &amp; manage
             <br />
@@ -214,7 +214,7 @@ function Hero() {
 
           <motion.p
             variants={fadeUp}
-            className="mx-auto mt-6 max-w-xl text-[15.5px] sm:text-lg text-[#3D4127]/80 leading-relaxed"
+            className="mx-auto mt-6 max-w-xl text-[15.5px] sm:text-lg text-slate-900/80 leading-relaxed"
           >
             Upload documents, collect signatures, track status, and manage everything from one dashboard.
           </motion.p>
@@ -225,17 +225,17 @@ function Hero() {
           >
             <button
               onClick={handleGetStarted}
-              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 px-7 py-3.5 text-[14.5px] font-semibold text-white shadow-[0_8px_30px_-8px_rgba(168,85,247,0.6)] transition-transform hover:scale-[1.03] cursor-pointer"
+              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3.5 text-[14.5px] font-semibold text-white shadow-[0_8px_30px_-8px_rgba(168,85,247,0.6)] transition-transform hover:scale-[1.03] cursor-pointer"
             >
               Ready to Start
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
             <a
               href="#solutions"
-              className="group inline-flex items-center gap-2 rounded-full border border-[#3D4127]/20 bg-[#BAC095]/30 px-7 py-3.5 text-[14.5px] font-semibold text-[#3D4127] backdrop-blur-sm transition-colors hover:bg-[#BAC095]/50"
+              className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-[#F3F4F6]/30 px-7 py-3.5 text-[14.5px] font-semibold text-slate-900 backdrop-blur-sm transition-colors hover:bg-[#F3F4F6]/50"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3D4127]/10">
-                <Play className="h-3 w-3 fill-[#3D4127]" />
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2563EB]/10">
+                <Play className="h-3 w-3 fill-[#2563EB]" />
               </span>
               Watch Demo
             </a>
@@ -330,12 +330,12 @@ function ScreenshotCarousel() {
             key={s.id}
             onClick={() => manualGoTo(i)}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-all duration-300 cursor-pointer ${active === i
-              ? "bg-[#3D4127] text-white shadow-md"
-              : "bg-white/50 text-[#3D4127]/70 border border-[#BAC095] hover:bg-white/70"
+              ? "bg-[#2563EB] text-white shadow-md"
+              : "bg-white/50 text-slate-900/70 border border-[#F3F4F6] hover:bg-white/70"
               }`}
           >
             <span
-              className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-green-400" : "bg-[#3D4127]/30"
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-green-400" : "bg-[#2563EB]/30"
                 }`}
             />
             {s.label}
@@ -352,28 +352,28 @@ function ScreenshotCarousel() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.3 }}
-          className="text-center text-[14px] text-[#3D4127]/75 max-w-xl mx-auto leading-relaxed"
+          className="text-center text-[14px] text-slate-900/75 max-w-xl mx-auto leading-relaxed"
         >
           {slide.desc}
         </motion.p>
       </AnimatePresence>
 
       {/* Image frame */}
-      <div className="relative rounded-2xl border border-[#3D4127]/15 bg-white/70 p-2 shadow-[0_30px_100px_-20px_rgba(61,65,39,0.15)] backdrop-blur-2xl">
+      <div className="relative rounded-2xl border border-slate-200 bg-white/70 p-2 shadow-[0_30px_100px_-20px_rgba(37,99,235,0.15)] backdrop-blur-2xl">
         {/* Browser chrome bar */}
-        <div className="rounded-t-xl border border-[#3D4127]/10 bg-[#f0f0eb] px-4 py-2.5 flex items-center gap-2">
+        <div className="rounded-t-xl border border-slate-200 bg-[#f0f0eb] px-4 py-2.5 flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-red-400/80" />
           <span className="h-3 w-3 rounded-full bg-yellow-400/80" />
           <span className="h-3 w-3 rounded-full bg-green-400/80" />
-          <div className="mx-auto flex items-center gap-2 rounded-full bg-white/60 border border-[#3D4127]/10 px-3 py-0.5">
-            <Lock className="h-3 w-3 text-[#3D4127]/50" />
-            <span className="text-[11px] text-[#3D4127]/50 font-medium">easysign.app</span>
+          <div className="mx-auto flex items-center gap-2 rounded-full bg-white/60 border border-slate-200 px-3 py-0.5">
+            <Lock className="h-3 w-3 text-slate-900/50" />
+            <span className="text-[11px] text-slate-900/50 font-medium">easysign.app</span>
           </div>
           <span className="w-14" /> {/* balance */}
         </div>
 
         {/* Slide image */}
-        <div className="relative overflow-hidden rounded-b-xl border border-t-0 border-[#3D4127]/10 bg-white" style={{ minHeight: "360px" }}>
+        <div className="relative overflow-hidden rounded-b-xl border border-t-0 border-slate-200 bg-white" style={{ minHeight: "360px" }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.img
               key={`slide-${active}`}
@@ -396,7 +396,7 @@ function ScreenshotCarousel() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.85 }}
               transition={{ duration: 0.3 }}
-              className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-[#3D4127]/80 backdrop-blur-sm px-3 py-1 text-[11.5px] font-semibold text-[#BAC095]"
+              className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-[#2563EB]/80 backdrop-blur-sm px-3 py-1 text-[11.5px] font-semibold text-[#F3F4F6]"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
               {slide.badge}
@@ -406,14 +406,14 @@ function ScreenshotCarousel() {
           {/* Prev / Next arrows */}
           <button
             onClick={() => { clearInterval(timerRef.current); prev(); }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 border border-[#3D4127]/10 shadow text-[#3D4127] hover:bg-white transition-colors cursor-pointer"
+            className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 border border-slate-200 shadow text-slate-900 hover:bg-white transition-colors cursor-pointer"
             aria-label="Previous slide"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={() => { clearInterval(timerRef.current); next(); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 border border-[#3D4127]/10 shadow text-[#3D4127] hover:bg-white transition-colors cursor-pointer"
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 border border-slate-200 shadow text-slate-900 hover:bg-white transition-colors cursor-pointer"
             aria-label="Next slide"
           >
             <ChevronRight className="h-4 w-4" />
@@ -433,11 +433,11 @@ function ScreenshotCarousel() {
             <motion.span
               animate={{
                 width: active === i ? 24 : 8,
-                backgroundColor: active === i ? "#3D4127" : "#BAC09580",
+                backgroundColor: active === i ? "#2563EB" : "#D1D5DB",
               }}
               transition={{ duration: 0.3 }}
               className="block h-2 rounded-full"
-              style={{ width: active === i ? 24 : 8, backgroundColor: active === i ? "#3D4127" : "#BAC09580" }}
+              style={{ width: active === i ? 24 : 8, backgroundColor: active === i ? "#2563EB" : "#D1D5DB" }}
             />
           </button>
         ))}
@@ -464,11 +464,11 @@ function ProductShowcase() {
           </motion.div>
           <motion.h2
             variants={fadeUp}
-            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
+            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900"
           >
             One dashboard for every document, signer, and signature.
           </motion.h2>
-          <motion.p variants={fadeUp} className="mt-4 text-[#3D4127]/80 text-[15px]">
+          <motion.p variants={fadeUp} className="mt-4 text-slate-900/80 text-[15px]">
             Upload, send, and track documents in real time — see exactly who's signed, who's pending, and what happened, when.
           </motion.p>
         </motion.div>
@@ -515,7 +515,7 @@ function Features() {
           </motion.div>
           <motion.h2
             variants={fadeUp}
-            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
+            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900"
           >
             Everything a modern signing workflow needs!
           </motion.h2>
@@ -533,13 +533,13 @@ function Features() {
               key={f.title}
               variants={fadeUp}
               whileHover={{ y: -4 }}
-              className="group rounded-2xl border border-[#BAC095] bg-white/40 p-5 transition-colors hover:border-[#636B2F] hover:bg-white/60 shadow-sm"
+              className="group rounded-2xl border border-[#F3F4F6] bg-white/40 p-5 transition-colors hover:border-[#2563EB] hover:bg-white/60 shadow-sm"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600/10 to-pink-600/10 text-violet-700 transition-colors group-hover:text-pink-600">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600/10 to-indigo-600/10 text-blue-600 transition-colors group-hover:text-pink-600">
                 <f.icon className="h-5 w-5" strokeWidth={1.75} />
               </span>
-              <h3 className="mt-4 text-[14.5px] font-semibold text-[#3D4127]">{f.title}</h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-[#3D4127]/80">{f.desc}</p>
+              <h3 className="mt-4 text-[14.5px] font-semibold text-slate-900">{f.title}</h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-900/80">{f.desc}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -573,7 +573,7 @@ function HowItWorks() {
           </motion.div>
           <motion.h2
             variants={fadeUp}
-            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
+            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900"
           >
             From upload to signed in four easy steps! Get your signed document instantly.
           </motion.h2>
@@ -586,7 +586,7 @@ function HowItWorks() {
               whileInView={{ scaleX: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 1.2, ease: "easeInOut" }}
-              className="h-full w-full origin-left bg-gradient-to-r from-violet-600/30 via-pink-600/30 to-violet-600/5"
+              className="h-full w-full origin-left bg-gradient-to-r from-blue-600/30 via-indigo-600/30 to-blue-600/5"
             />
           </div>
 
@@ -599,14 +599,14 @@ function HowItWorks() {
               transition={{ duration: 0.5, delay: i * 0.12 }}
               className="relative"
             >
-              <div className="relative z-10 mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#BAC095] bg-white text-violet-700 shadow-md">
+              <div className="relative z-10 mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#F3F4F6] bg-white text-blue-600 shadow-md">
                 <step.icon className="h-6 w-6" strokeWidth={1.75} />
-                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-[10px] font-bold text-white">
+                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-[10px] font-bold text-white">
                   {i + 1}
                 </span>
               </div>
-              <h3 className="text-[15px] font-semibold text-[#3D4127]">{step.title}</h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-[#3D4127]/80">{step.desc}</p>
+              <h3 className="text-[15px] font-semibold text-slate-900">{step.title}</h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-900/80">{step.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -644,20 +644,20 @@ function Security() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-              className="absolute h-full w-full rounded-full border border-dashed border-[#3D4127]/15"
+              className="absolute h-full w-full rounded-full border border-dashed border-slate-200"
             />
             <motion.div
               animate={{ rotate: -360 }}
               transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-              className="absolute h-[80%] w-[80%] rounded-full border border-[#3D4127]/10"
+              className="absolute h-[80%] w-[80%] rounded-full border border-slate-200"
             />
-            <div className="absolute h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
+            <div className="absolute h-48 w-48 rounded-full bg-blue-500/10 blur-3xl" />
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="relative flex h-32 w-32 items-center justify-center rounded-3xl border border-[#BAC095] bg-white shadow-2xl"
+              className="relative flex h-32 w-32 items-center justify-center rounded-3xl border border-[#F3F4F6] bg-white shadow-2xl"
             >
-              <ShieldCheck className="h-14 w-14 text-violet-700" strokeWidth={1.5} />
+              <ShieldCheck className="h-14 w-14 text-blue-600" strokeWidth={1.5} />
               <motion.span
                 animate={{ scale: [1, 1.15, 1], opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.5, repeat: Infinity }}
@@ -679,23 +679,23 @@ function Security() {
             </motion.div>
             <motion.h2
               variants={fadeUp}
-              className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
+              className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900"
             >
               Your documents, protected at every layer.
             </motion.h2>
-            <motion.p variants={fadeUp} className="mt-3 text-[#3D4127]/80 text-[15px] max-w-md">
+            <motion.p variants={fadeUp} className="mt-3 text-slate-900/80 text-[15px] max-w-md">
               Security isn't a feature here — it's the foundation everything else is built on.
             </motion.p>
 
             <div className="mt-8 space-y-4">
               {SECURITY_POINTS.map((p) => (
                 <motion.div key={p.title} variants={fadeUp} className="flex gap-4">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600/10 text-violet-700">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600/10 text-blue-600">
                     <p.icon className="h-5 w-5" strokeWidth={1.75} />
                   </span>
                   <div>
-                    <h3 className="text-[14px] font-semibold text-[#3D4127]">{p.title}</h3>
-                    <p className="mt-0.5 text-[13px] text-[#3D4127]/80 leading-relaxed">{p.desc}</p>
+                    <h3 className="text-[14px] font-semibold text-slate-900">{p.title}</h3>
+                    <p className="mt-0.5 text-[13px] text-slate-900/80 leading-relaxed">{p.desc}</p>
                   </div>
                 </motion.div>
               ))}
@@ -734,7 +734,7 @@ function UseCases() {
           </motion.div>
           <motion.h2
             variants={fadeUp}
-            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
+            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900"
           >
             Built for every team that handles paperwork
           </motion.h2>
@@ -752,13 +752,13 @@ function UseCases() {
               key={u.title}
               variants={fadeUp}
               whileHover={{ y: -4 }}
-              className="rounded-2xl border border-[#BAC095] bg-white/40 p-6 transition-colors hover:border-pink-600/30 hover:bg-white/60 shadow-sm"
+              className="rounded-2xl border border-[#F3F4F6] bg-white/40 p-6 transition-colors hover:border-blue-600/30 hover:bg-white/60 shadow-sm"
             >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-pink-100 text-pink-700">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
                 <u.icon className="h-5 w-5" strokeWidth={1.75} />
               </span>
-              <h3 className="mt-4 text-[15px] font-semibold text-[#3D4127]">{u.title}</h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-[#3D4127]/80">{u.desc}</p>
+              <h3 className="mt-4 text-[15px] font-semibold text-slate-900">{u.title}</h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-slate-900/80">{u.desc}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -796,7 +796,7 @@ function FAQ() {
           </motion.div>
           <motion.h2
             variants={fadeUp}
-            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-[#3D4127]"
+            className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900"
           >
             Frequently asked questions
           </motion.h2>
@@ -810,17 +810,17 @@ function FAQ() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="rounded-xl border border-[#BAC095] bg-white/40 overflow-hidden"
+              className="rounded-xl border border-[#F3F4F6] bg-white/40 overflow-hidden"
             >
               <button
                 onClick={() => setOpen(open === i ? -1 : i)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left cursor-pointer"
               >
-                <span className="text-[14px] font-medium text-[#3D4127]">{item.q}</span>
+                <span className="text-[14px] font-medium text-slate-900">{item.q}</span>
                 <motion.span
                   animate={{ rotate: open === i ? 180 : 0 }}
                   transition={{ duration: 0.3 }}
-                  className="ml-4 shrink-0 text-[#3D4127]/60"
+                  className="ml-4 shrink-0 text-slate-900/60"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </motion.span>
@@ -833,7 +833,7 @@ function FAQ() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                   >
-                    <p className="px-5 pb-4 text-[13.5px] leading-relaxed text-[#3D4127]/80">
+                    <p className="px-5 pb-4 text-[13.5px] leading-relaxed text-slate-900/80">
                       {item.a}
                     </p>
                   </motion.div>
@@ -865,9 +865,9 @@ function FinalCTA() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="relative overflow-hidden rounded-3xl border border-[#3D4127]/25 bg-gradient-to-br from-[#3D4127] via-[#252818] to-[#1C1E12] px-8 py-16 text-center sm:px-16"
+          className="relative overflow-hidden rounded-3xl border border-[#2563EB]/25 bg-gradient-to-br from-[#1E3A8A] via-[#0F172A] to-[#020617] px-8 py-16 text-center sm:px-16"
         >
-          <div className="absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-violet-500/20 blur-[100px]" />
+          <div className="absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-500/20 blur-[100px]" />
 
           <div className="relative">
             <SignatureStroke className="mx-auto mb-6 h-12 w-48 opacity-80" />
@@ -876,12 +876,12 @@ function FinalCTA() {
               <br />
               document signing?
             </h2>
-            <p className="mx-auto mt-4 max-w-md text-[15px] text-[#BAC095]">
+            <p className="mx-auto mt-4 max-w-md text-[15px] text-[#F3F4F6]">
               Join today and experience the simplicity of electronic signatures.
             </p>
             <button
               onClick={handleGetStarted}
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#BAC095] px-8 py-4 text-[15px] font-semibold text-[#3D4127] transition-transform hover:bg-white cursor-pointer"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#F3F4F6] px-8 py-4 text-[15px] font-semibold text-slate-900 transition-transform hover:bg-white cursor-pointer"
             >
               Get Started Today
               <ArrowRight className="h-4 w-4" />
@@ -903,32 +903,32 @@ function Footer() {
   ];
 
   return (
-    <footer id="contact" className="relative border-t border-[#3D4127]/10 py-14">
+    <footer id="contact" className="relative border-t border-slate-200 py-14">
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
             <a href="#" className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-green-500">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2563EB]">
                 <FileSignature className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
               </span>
-              <span className="text-[17px] font-semibold tracking-tight text-[#3D4127]">
-                EASY<span className="text-green-700">sign</span>
+              <span className="text-[17px] font-semibold tracking-tight text-slate-900">
+                EASY<span className="text-blue-700">sign</span>
               </span>
             </a>
-            <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-[#3D4127]/70">
+            <p className="mt-4 max-w-xs text-[13px] leading-relaxed text-slate-900/70">
               Document signing and management for anyone who needs a clear record of who signed what, and when.
             </p>
           </div>
 
           {columns.map((col) => (
             <div key={col.title}>
-              <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#3D4127]">
+              <h4 className="text-[12px] font-bold uppercase tracking-wider text-slate-900">
                 {col.title}
               </h4>
               <ul className="mt-4 space-y-2.5">
                 {col.links.map((l) => (
                   <li key={l}>
-                    <a href="#" className="text-[13px] text-[#3D4127]/70 hover:text-[#3D4127] transition-colors">
+                    <a href="#" className="text-[13px] text-slate-900/70 hover:text-slate-900 transition-colors">
                       {l}
                     </a>
                   </li>
@@ -938,11 +938,11 @@ function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#3D4127]/10 pt-8">
-          <p className="text-[12.5px] text-[#3D4127]/60">
+        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 pt-8">
+          <p className="text-[12.5px] text-slate-900/60">
             © {new Date().getFullYear()} EASYsign. All rights reserved.
           </p>
-          <div className="flex gap-5 text-[12.5px] text-[#3D4127]/60" />
+          <div className="flex gap-5 text-[12.5px] text-slate-900/60" />
         </div>
       </div>
     </footer>
@@ -953,7 +953,7 @@ function Footer() {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#BAC095] font-sans text-[#3D4127] antialiased">
+    <div className="min-h-screen bg-[#F3F4F6] font-sans text-slate-900 antialiased">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
         .font-display { font-family: 'Space Grotesk', sans-serif; }

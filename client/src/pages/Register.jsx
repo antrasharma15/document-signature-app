@@ -91,20 +91,20 @@ export default function Register() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#BAC095] text-[#3D4127] antialiased flex items-center justify-center px-4">
+    <div className="relative min-h-screen overflow-hidden bg-[#F3F4F6] text-slate-900 antialiased flex items-center justify-center px-4">
       {/* Centered radial glow */}
-      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-400/30 blur-[150px]" />
+      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/20 blur-[150px]" />
 
       {/* Glassmorphism Card */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-[#BAC095] bg-white/60 p-8 backdrop-blur-lg shadow-2xl flex flex-col"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white/60 p-8 backdrop-blur-lg shadow-2xl flex flex-col"
       >
         {/* Badge */}
         <div className="flex justify-center mb-6">
-          <span className="rounded-full border border-[#3D4127]/20 bg-white/40 px-4 py-2 text-sm text-[#3D4127] font-semibold">
+          <span className="rounded-full border border-[#2563EB]/20 bg-[#2563EB]/10 px-4 py-2 text-sm text-[#2563EB] font-semibold">
             Create Account
           </span>
         </div>
@@ -116,14 +116,14 @@ export default function Register() {
           transition={{ duration: 0.5, delay: 0.25 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl font-bold text-[#3D4127] tracking-tight">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
             Start signing documents
           </h1>
-          <p className="mt-2 text-sm text-[#3D4127]/75">
+          <p className="mt-2 text-sm text-slate-600">
             Already have an account?{' '}
             <Link
               to="/login"
-              className="text-violet-700 font-semibold hover:text-violet-600 transition duration-200"
+              className="text-[#2563EB] font-semibold hover:text-blue-700 transition duration-200"
             >
               Sign in
             </Link>
@@ -151,7 +151,7 @@ export default function Register() {
           >
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+              className="block text-sm font-medium text-slate-700 mb-2"
             >
               Full Name
             </label>
@@ -162,12 +162,12 @@ export default function Register() {
               value={form.name}
               onChange={handleChange}
               placeholder="John Doe"
-              autoComplete="name"           // browser autofills saved name
+              autoComplete="name"
               autoCapitalize="words"
-              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition duration-200 ${
                 errors.name
                   ? 'border-red-400 focus:border-red-500'
-                  : 'border-[#BAC095] focus:border-violet-600'
+                  : 'border-slate-200 focus:border-[#2563EB]'
               }`}
             />
             {errors.name && (
@@ -183,7 +183,7 @@ export default function Register() {
           >
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+              className="block text-sm font-medium text-slate-700 mb-2"
             >
               Email
             </label>
@@ -194,14 +194,14 @@ export default function Register() {
               value={form.email}
               onChange={handleChange}
               placeholder="email@example.com"
-              autoComplete="email"          // browser autofills saved email
+              autoComplete="email"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck="false"
-              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition duration-200 ${
                 errors.email
                   ? 'border-red-400 focus:border-red-500'
-                  : 'border-[#BAC095] focus:border-violet-600'
+                  : 'border-slate-200 focus:border-[#2563EB]'
               }`}
             />
             {errors.email && (
@@ -217,7 +217,7 @@ export default function Register() {
           >
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-[#3D4127]/75 mb-2"
+              className="block text-sm font-medium text-slate-700 mb-2"
             >
               Password
             </label>
@@ -228,15 +228,15 @@ export default function Register() {
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
-              autoComplete="new-password"   // tells browser: offer to save this as a NEW password
-              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+              autoComplete="new-password"
+              className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition duration-200 ${
                 errors.password
                   ? 'border-red-400 focus:border-red-500'
-                  : 'border-[#BAC095] focus:border-violet-600'
+                  : 'border-slate-200 focus:border-[#2563EB]'
               }`}
             />
 
-            {/* Password strength bar — only shown while typing */}
+            {/* Password strength bar */}
             {form.password.length > 0 && (
               <div className="mt-2">
                 <div className="flex gap-1 mb-1">
@@ -246,7 +246,7 @@ export default function Register() {
                       className={`h-1 flex-1 rounded-full transition-all duration-300 ${
                         i < passwordStrength.score
                           ? passwordStrength.color
-                          : 'bg-[#3D4127]/15'
+                          : 'bg-slate-200'
                       }`}
                     />
                   ))}
@@ -260,7 +260,7 @@ export default function Register() {
                 }`}>
                   {passwordStrength.label}
                   {passwordStrength.score < 4 && (
-                    <span className="font-normal text-[#3D4127]/50 ml-1">
+                    <span className="font-normal text-slate-400 ml-1">
                       — try adding{' '}
                       {!(/[A-Z]/.test(form.password)) && 'an uppercase letter, '}
                       {!(/[0-9]/.test(form.password)) && 'a number, '}
@@ -286,7 +286,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full cursor-pointer rounded-xl bg-[#3D4127] py-3.5 font-semibold text-white hover:bg-[#3D4127]/90 transition duration-200 disabled:opacity-50"
+              className="w-full cursor-pointer rounded-xl bg-[#2563EB] py-3.5 font-semibold text-white hover:bg-blue-700 transition duration-200 disabled:opacity-50"
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>

@@ -17,14 +17,14 @@ import {
 
 /* ─── Design tokens ─────────────────────────────────────────────── */
 const S = {
-  bg:          "#BAC095",   // mossy hollow background
-  sidebar:     "#1C1F2E",   // ink blue-black, richer than generic dark
+  bg:          "#F3F4F6",   // light gray background
+  sidebar:     "#1E293B",   // slate-800
   card:        "#FFFFFF",
-  accent:      "#3D6B5E",   // verdigris — aged copper seal
-  accentLight: "#EBF3F0",
-  text:        "#1C1F2E",
-  muted:       "#6E7491",
-  border:      "#E2E4EA",
+  accent:      "#2563EB",   // primary blue #2563EB
+  accentLight: "#EFF6FF",   // light blue-50
+  text:        "#111827",   // gray-900
+  muted:       "#4B5563",   // gray-600
+  border:      "#E5E7EB",   // gray-200
   status: {
     signed:   { bg: "#EBF3F0", color: "#2A5C4E" },
     waiting:  { bg: "#EEF0F9", color: "#3D4D8A" },
@@ -125,14 +125,14 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const currentTheme = {
-    bg:          isDarkMode ? "#12141C" : S.bg,
-    sidebar:     isDarkMode ? "#0F111A" : S.sidebar,
-    card:        isDarkMode ? "#1A1D2B" : S.card,
-    accent:      isDarkMode ? "#528E7E" : S.accent,
-    accentLight: isDarkMode ? "#202E29" : S.accentLight,
+    bg:          isDarkMode ? "#0F172A" : S.bg,
+    sidebar:     isDarkMode ? "#0F172A" : S.sidebar,
+    card:        isDarkMode ? "#1E293B" : S.card,
+    accent:      isDarkMode ? "#3B82F6" : S.accent,
+    accentLight: isDarkMode ? "#1E3A8A" : S.accentLight,
     text:        isDarkMode ? "#F3F4F6" : S.text,
-    muted:       isDarkMode ? "#9CA3AF" : S.muted,
-    border:      isDarkMode ? "#2D3142" : S.border,
+    muted:       isDarkMode ? "#94A3B8" : S.muted,
+    border:      isDarkMode ? "#334155" : S.border,
   };
 
   const handleSendForSigning = async (docId) => {

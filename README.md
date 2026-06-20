@@ -19,7 +19,7 @@ EASYsign is a premium, secure, and production-ready **MERN Stack** web applicati
 ## 📸 Screenshots & Demo
 
 ### 🖥️ Dashboard Overview
-![Dashboard](client/src/assets/dashboard.jpeg)
+![Dashboard](client/src/assets/dashboard.png)
 
 ### ✍️ Signing Workspace
 ![Signing Workspace](client/src/assets/signing%20workspace.jpeg)

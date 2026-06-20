@@ -134,7 +134,7 @@ export default function SignPage() {
   if (!docInfo) return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center font-sans">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
         <p className="text-slate-400 text-sm">Loading secure signature portal...</p>
       </div>
     </div>
@@ -148,7 +148,7 @@ export default function SignPage() {
       {/* Navbar */}
       <header className="bg-slate-950 border-b border-slate-800/80 py-4 px-6 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-lg">
+          <div className="w-9 h-9 rounded-lg bg-[#2563EB] flex items-center justify-center text-white text-lg">
             ✍️
           </div>
           <div>
@@ -165,13 +165,13 @@ export default function SignPage() {
             <div>
               <h2 className="text-lg font-bold text-white mb-1">Review & Sign Document</h2>
               <p className="text-slate-400 text-sm">
-                Document name: <strong className="text-emerald-400 font-medium">{docInfo.filename}</strong>
+                Document name: <strong className="text-blue-400 font-medium">{docInfo.filename}</strong>
               </p>
             </div>
             <div className="flex gap-3 self-start sm:self-center">
               <button
                 onClick={handleSignButtonClick}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-semibold transition cursor-pointer"
+                className="bg-[#2563EB] hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-semibold transition cursor-pointer"
               >
                 ✅ Sign Document
               </button>

@@ -6,13 +6,13 @@ import Sidebar from "../components/Sidebar";
 import { User, Lock, Bell, Moon, Shield, Save, CheckCircle2, AlertCircle, LayoutDashboard, ChevronDown, LogOut } from "lucide-react";
 
 const S = {
-  bg: "#BAC095",
+  bg: "#F3F4F6",         // light gray background
   card: "#FFFFFF",
-  accent: "#3D6B5E",
-  accentLight: "#EBF3F0",
-  text: "#1C1F2E",
-  muted: "#6E7491",
-  border: "#E2E4EA",
+  accent: "#2563EB",     // primary blue
+  accentLight: "#EFF6FF",// light blue-50
+  text: "#111827",       // dark slate/gray-900
+  muted: "#4B5563",      // gray-600
+  border: "#E5E7EB",     // gray-200
 };
 
 export default function SettingsPage() {
@@ -47,13 +47,13 @@ export default function SettingsPage() {
   const [weeklySummary, setWeeklySummary] = useState(false);
 
   const currentTheme = {
-    bg: isDarkMode ? "#12141C" : S.bg,
-    card: isDarkMode ? "#1A1D2B" : S.card,
-    accent: isDarkMode ? "#528E7E" : S.accent,
-    accentLight: isDarkMode ? "#202E29" : S.accentLight,
+    bg: isDarkMode ? "#0F172A" : S.bg,
+    card: isDarkMode ? "#1E293B" : S.card,
+    accent: isDarkMode ? "#3B82F6" : S.accent,
+    accentLight: isDarkMode ? "#1E3A8A" : S.accentLight,
     text: isDarkMode ? "#F3F4F6" : S.text,
-    muted: isDarkMode ? "#9CA3AF" : S.muted,
-    border: isDarkMode ? "#2D3142" : S.border,
+    muted: isDarkMode ? "#94A3B8" : S.muted,
+    border: isDarkMode ? "#334155" : S.border,
   };
 
   const handleProfileChange = (e) => {

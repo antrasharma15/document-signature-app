@@ -59,14 +59,14 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#BAC095] flex items-center justify-center px-4">
-      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-400/30 blur-[150px]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#F3F4F6] flex items-center justify-center px-4">
+      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/20 blur-[150px]" />
 
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-[#BAC095] bg-white/60 p-10 backdrop-blur-lg shadow-2xl text-center"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white/60 p-10 backdrop-blur-lg shadow-2xl text-center"
       >
 
         {/* LOADING */}
@@ -76,8 +76,8 @@ export default function VerifyEmail() {
             animate={{ opacity: 1 }}
             className="flex flex-col items-center gap-4"
           >
-            <div className="h-12 w-12 rounded-full border-4 border-[#3D4127]/20 border-t-[#3D4127] animate-spin" />
-            <p className="text-sm text-[#3D4127]/70">Verifying your email address...</p>
+            <div className="h-12 w-12 rounded-full border-4 border-[#2563EB]/20 border-t-[#2563EB] animate-spin" />
+            <p className="text-sm text-slate-600">Verifying your email address...</p>
           </motion.div>
         )}
 
@@ -100,15 +100,15 @@ export default function VerifyEmail() {
               </svg>
             </motion.div>
 
-            <h1 className="text-2xl font-bold text-[#3D4127] tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               Email verified!
             </h1>
-            <p className="mt-3 text-sm text-[#3D4127]/70 leading-relaxed">
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               Your account is now active. You can sign in and start using EASYsign.
             </p>
             <Link
               to="/login"
-              className="mt-8 inline-block w-full rounded-xl bg-[#3D4127] py-3.5 font-semibold text-white hover:bg-[#3D4127]/90 transition duration-200"
+              className="mt-8 inline-block w-full rounded-xl bg-[#2563EB] py-3.5 font-semibold text-white hover:bg-blue-700 transition duration-200"
             >
               Go to Sign In
             </Link>
@@ -128,8 +128,8 @@ export default function VerifyEmail() {
               </svg>
             </div>
 
-            <h1 className="text-2xl font-bold text-[#3D4127]">Link expired</h1>
-            <p className="mt-3 text-sm text-[#3D4127]/70 leading-relaxed">
+            <h1 className="text-2xl font-bold text-slate-900">Link expired</h1>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               This verification link has expired. Enter your email below and we'll send you a new one.
             </p>
 
@@ -149,12 +149,12 @@ export default function VerifyEmail() {
                   onChange={(e) => setResendEmail(e.target.value)}
                   placeholder="Your email address"
                   autoComplete="email"
-                  className="w-full rounded-xl border border-[#BAC095] bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:border-violet-600 focus:outline-none transition"
+                  className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none transition"
                 />
                 <button
                   onClick={handleResend}
                   disabled={resending || !resendEmail}
-                  className="w-full rounded-xl bg-[#3D4127] py-3 font-semibold text-white hover:bg-[#3D4127]/90 transition disabled:opacity-50 cursor-pointer"
+                  className="w-full rounded-xl bg-[#2563EB] py-3 font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
                 >
                   {resending ? 'Sending...' : 'Resend verification email'}
                 </button>
@@ -176,20 +176,20 @@ export default function VerifyEmail() {
               </svg>
             </div>
 
-            <h1 className="text-2xl font-bold text-[#3D4127]">Invalid link</h1>
-            <p className="mt-3 text-sm text-[#3D4127]/70 leading-relaxed">
+            <h1 className="text-2xl font-bold text-slate-900">Invalid link</h1>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               This verification link is invalid or has already been used. If you already verified your account, you can sign in directly.
             </p>
             <div className="mt-8 flex gap-3 w-full">
               <Link
                 to="/login"
-                className="flex-1 rounded-xl bg-[#3D4127] py-3 text-center font-semibold text-white hover:bg-[#3D4127]/90 transition text-sm"
+                className="flex-1 rounded-xl bg-[#2563EB] py-3 text-center font-semibold text-white hover:bg-blue-700 transition text-sm"
               >
                 Go to Sign In
               </Link>
               <Link
                 to="/register"
-                className="flex-1 rounded-xl border border-[#3D4127]/20 bg-white/60 py-3 text-center font-semibold text-[#3D4127] hover:bg-white/80 transition text-sm"
+                className="flex-1 rounded-xl border border-slate-200 bg-white/60 py-3 text-center font-semibold text-slate-800 hover:bg-white/80 transition text-sm"
               >
                 Register again
               </Link>

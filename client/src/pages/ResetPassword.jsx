@@ -87,32 +87,32 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#BAC095] flex items-center justify-center px-4">
-      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-400/30 blur-[150px]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#F3F4F6] flex items-center justify-center px-4">
+      <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/20 blur-[150px]" />
 
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md rounded-3xl border border-[#BAC095] bg-white/60 p-8 backdrop-blur-lg shadow-2xl"
+        className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white/60 p-8 backdrop-blur-lg shadow-2xl"
       >
 
         {/* ── IDLE — reset form ───────────────────────────────────── */}
         {status === STATUS.IDLE && (
           <>
             <div className="flex justify-center mb-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#3D4127]/10">
-                <svg className="h-8 w-8 text-[#3D4127]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#2563EB]/10">
+                <svg className="h-8 w-8 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                 </svg>
               </div>
             </div>
 
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-[#3D4127] tracking-tight">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 Set a new password
               </h1>
-              <p className="mt-2 text-sm text-[#3D4127]/70">
+              <p className="mt-2 text-sm text-slate-600">
                 Choose a strong password for your account.
               </p>
             </div>
@@ -120,7 +120,7 @@ export default function ResetPassword() {
             <form onSubmit={handleSubmit} autoComplete="off" noValidate className="space-y-5">
               {/* New password */}
               <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium text-[#3D4127]/75 mb-2">
+                <label htmlFor="newPassword" className="block text-sm font-medium text-slate-700 mb-2">
                   New Password
                 </label>
                 <input
@@ -131,10 +131,10 @@ export default function ResetPassword() {
                   onChange={handleChange}
                   placeholder="••••••••"
                   autoComplete="new-password"
-                  className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+                  className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition duration-200 ${
                     errors.newPassword
                       ? 'border-red-400 focus:border-red-500'
-                      : 'border-[#BAC095] focus:border-violet-600'
+                      : 'border-slate-200 focus:border-[#2563EB]'
                   }`}
                 />
 
@@ -148,7 +148,7 @@ export default function ResetPassword() {
                           className={`h-1 flex-1 rounded-full transition-all duration-300 ${
                             i < passwordStrength.score
                               ? passwordStrength.color
-                              : 'bg-[#3D4127]/15'
+                              : 'bg-slate-200'
                           }`}
                         />
                       ))}
@@ -170,7 +170,7 @@ export default function ResetPassword() {
 
               {/* Confirm password */}
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#3D4127]/75 mb-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-2">
                   Confirm New Password
                 </label>
                 <input
@@ -181,12 +181,12 @@ export default function ResetPassword() {
                   onChange={handleChange}
                   placeholder="••••••••"
                   autoComplete="new-password"
-                  className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-[#3D4127] placeholder-slate-400 focus:outline-none transition duration-200 ${
+                  className={`w-full rounded-xl border bg-white/80 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition duration-200 ${
                     errors.confirmPassword
                       ? 'border-red-400 focus:border-red-500'
                       : form.confirmPassword && form.newPassword === form.confirmPassword
                       ? 'border-emerald-400'
-                      : 'border-[#BAC095] focus:border-violet-600'
+                      : 'border-slate-200 focus:border-[#2563EB]'
                   }`}
                 />
                 {/* Live match indicator */}
@@ -207,7 +207,7 @@ export default function ResetPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#3D4127] py-3.5 font-semibold text-white hover:bg-[#3D4127]/90 transition duration-200 disabled:opacity-50"
+                className="w-full rounded-xl bg-[#2563EB] py-3.5 font-semibold text-white hover:bg-blue-700 transition duration-200 disabled:opacity-50"
               >
                 {loading ? 'Resetting password...' : 'Reset Password'}
               </button>
@@ -232,13 +232,13 @@ export default function ResetPassword() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             </motion.div>
-            <h1 className="text-2xl font-bold text-[#3D4127]">Password reset!</h1>
-            <p className="mt-3 text-sm text-[#3D4127]/70 leading-relaxed">
+            <h1 className="text-2xl font-bold text-slate-900">Password reset!</h1>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               Your password has been updated. You can now sign in with your new password.
             </p>
             <Link
               to="/login"
-              className="mt-8 inline-block w-full rounded-xl bg-[#3D4127] py-3.5 text-center font-semibold text-white hover:bg-[#3D4127]/90 transition"
+              className="mt-8 inline-block w-full rounded-xl bg-[#2563EB] py-3.5 text-center font-semibold text-white hover:bg-blue-700 transition"
             >
               Go to Sign In
             </Link>
@@ -257,14 +257,14 @@ export default function ResetPassword() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-[#3D4127]">Link expired</h1>
-            <p className="mt-3 text-sm text-[#3D4127]/70 leading-relaxed">
+            <h1 className="text-2xl font-bold text-slate-900">Link expired</h1>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               This reset link has expired (links are valid for 15 minutes only).
               Request a new one from the login page.
             </p>
             <Link
               to="/forgot-password"
-              className="mt-8 inline-block w-full rounded-xl bg-[#3D4127] py-3.5 text-center font-semibold text-white hover:bg-[#3D4127]/90 transition"
+              className="mt-8 inline-block w-full rounded-xl bg-[#2563EB] py-3.5 text-center font-semibold text-white hover:bg-blue-700 transition"
             >
               Request New Reset Link
             </Link>
@@ -283,21 +283,21 @@ export default function ResetPassword() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-[#3D4127]">Invalid link</h1>
-            <p className="mt-3 text-sm text-[#3D4127]/70 leading-relaxed">
+            <h1 className="text-2xl font-bold text-slate-900">Invalid link</h1>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               This reset link is invalid or has already been used.
               Each link can only be used once.
             </p>
             <div className="mt-8 flex gap-3">
               <Link
                 to="/forgot-password"
-                className="flex-1 rounded-xl bg-[#3D4127] py-3 text-center text-sm font-semibold text-white hover:bg-[#3D4127]/90 transition"
+                className="flex-1 rounded-xl bg-[#2563EB] py-3 text-center text-sm font-semibold text-white hover:bg-blue-700 transition"
               >
                 Try Again
               </Link>
               <Link
                 to="/login"
-                className="flex-1 rounded-xl border border-[#3D4127]/20 bg-white/60 py-3 text-center text-sm font-semibold text-[#3D4127] hover:bg-white/80 transition"
+                className="flex-1 rounded-xl border border-slate-200 bg-white/60 py-3 text-center text-sm font-semibold text-slate-800 hover:bg-white/80 transition"
               >
                 Sign In
               </Link>
